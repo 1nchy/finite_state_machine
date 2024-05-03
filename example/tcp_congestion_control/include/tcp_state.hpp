@@ -13,8 +13,6 @@ struct tcp_congestion_state : public fsm::state {
     virtual self* handle(const new_ack&) = 0;
     virtual self* handle(const duplicate_ack&) = 0;
     virtual self* handle(const timeout&) = 0;
-    virtual self* handle(const initialization&) = 0;
-    virtual self* handle(const message&) = 0;
     void entry() override {}
     void exit() override {}
     const size_t _MSS = 1460;
@@ -36,8 +34,6 @@ struct slow_start : public tcp_congestion_state {
     self* handle(const new_ack& _e) override;
     self* handle(const duplicate_ack& _e) override;
     self* handle(const timeout& _e) override;
-    self* handle(const initialization& _e) override;
-    self* handle(const message& _e) override;
     void entry() override;
     void exit() override;
 };
@@ -47,8 +43,6 @@ struct congestion_avoidance : public tcp_congestion_state {
     self* handle(const new_ack& _e) override;
     self* handle(const duplicate_ack& _e) override;
     self* handle(const timeout& _e) override;
-    self* handle(const initialization& _e) override;
-    self* handle(const message& _e) override;
     void entry() override;
     void exit() override;
 };
@@ -58,8 +52,6 @@ struct fast_recovery : public tcp_congestion_state {
     self* handle(const new_ack& _e) override;
     self* handle(const duplicate_ack& _e) override;
     self* handle(const timeout& _e) override;
-    self* handle(const initialization& _e) override;
-    self* handle(const message& _e) override;
     void entry() override;
     void exit() override;
 };

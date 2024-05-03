@@ -16,10 +16,7 @@ template <typename _Tp> requires std::is_base_of<state, _Tp>::value class contex
 /**
  * @brief 有限状态机的事件基类
 */
-struct event {
-protected:
-    event() = default;
-};
+struct event {};
 
 /**
  * @brief 有限状态机的状态基类

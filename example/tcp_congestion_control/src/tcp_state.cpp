@@ -1,7 +1,9 @@
 #include "tcp_state.hpp"
 
 auto slow_start::handle(const fsm::event& _e) -> self* {
-    return this;
+    printf("message from slow_start\n");
+    this->dispatch<tcp_congestion_state>(timeout());
+    return nullptr;
 }
 auto slow_start::handle(const new_ack& _e) -> self* {
     _dup_ack_count = 0; _cwnd += _MSS;
@@ -25,15 +27,6 @@ auto slow_start::handle(const timeout& _e) -> self* {
     printf("retransmit new segment.\n");
     return this;
 }
-auto slow_start::handle(const initialization& _e) -> self* {
-    this->dispatch<tcp_congestion_state>(message());
-    _dup_ack_count = 0; _cwnd = _MSS; _ssthresh = 64 * 1024;
-    return this;
-}
-auto slow_start::handle(const message& _e) -> self* {
-    printf("message from slow_start\n");
-    return this;
-}
 auto slow_start::entry() -> void {
     printf("entry slow_start.\n");
     this->show();
@@ -44,6 +37,7 @@ auto slow_start::exit() -> void {
 }
 
 auto congestion_avoidance::handle(const fsm::event& _e) -> self* {
+    printf("message from congestion_avoidance\n");
     return this;
 }
 auto congestion_avoidance::handle(const new_ack& _e) -> self* {
@@ -67,15 +61,6 @@ auto congestion_avoidance::handle(const timeout& _e) -> self* {
     printf("retransmit new segment.\n");
     return _ret;
 }
-auto congestion_avoidance::handle(const initialization& _e) -> self* {
-    this->dispatch<tcp_congestion_state>(message());
-    _dup_ack_count = 0; _cwnd = _MSS; _ssthresh = 64 * 1024;
-    return this;
-}
-auto congestion_avoidance::handle(const message& _e) -> self* {
-    printf("message from congestion_avoidance\n");
-    return this;
-}
 auto congestion_avoidance::entry() -> void {
     printf("entry congestion_avoidance.\n");
     this->show();
@@ -86,6 +71,7 @@ auto congestion_avoidance::exit() -> void {
 }
 
 auto fast_recovery::handle(const fsm::event& _e) -> self* {
+    printf("message from fast_recovery\n");
     return this;
 }
 auto fast_recovery::handle(const new_ack& _e) -> self* {
@@ -102,15 +88,6 @@ auto fast_recovery::handle(const timeout& _e) -> self* {
     _dup_ack_count = 0;
     printf("retransmit new segment.\n");
     return fsm::state::instance<slow_start>();
-}
-auto fast_recovery::handle(const initialization& _e) -> self* {
-    this->dispatch<tcp_congestion_state>(message());
-    _dup_ack_count = 0; _cwnd = _MSS; _ssthresh = 64 * 1024;
-    return this;
-}
-auto fast_recovery::handle(const message& _e) -> self* {
-    printf("message from fast_recovery\n");
-    return this;
 }
 auto fast_recovery::entry() -> void {
     printf("entry fast_recovery.\n");

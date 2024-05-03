@@ -10,3 +10,7 @@
 
 !/example
 !/example/*
+
+!/doc
+!/doc/*
+!/doc/*/*
