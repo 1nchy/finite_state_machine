@@ -2,7 +2,7 @@
 
 ## 简介
 
-[有限状态机](https://zh.wikipedia.org/wiki/%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)（finite-state machine）是表示有限个状态以及在这些状态之间的转移和和动作等行为的数学计算模型。
+[有限状态机](https://zh.wikipedia.org/wiki/%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)（finite-state machine）是表示有限个状态以及在这些状态之间的转移和动作等行为的数学计算模型。
 
 ## 概述
 
@@ -10,7 +10,9 @@
 
 这是一个仅含头文件的库，使用时仅需要引用把 `include` 文件夹内的头文件即可。
 
-#### 示例
+在项目的具体使用方法，详见 [1nchy/project_template](https://github.com/1nchy/project_template)。
+
+### 示例
 
 我们以 tcp 拥塞控制的有限状态机为例，详情见 [TCP 拥塞控制](./doc/tcp_congestion_control/usage.md)。
 
