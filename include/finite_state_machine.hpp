@@ -29,9 +29,22 @@ protected:
     state() = default;
 public:
     state(const self&) = delete;
-    self& operator=(const self&) = delete;
+    self& operator=(const self&) = default;
     ~state() = default;
+    /**
+     * @brief 事件处理
+     * @return @c nullptr 状态不改变（推荐）
+     * @return @c this 重入当前状态
+     * @return pointer 希望变更到的状态
+    */
     virtual self* handle(const event&) = 0;
+    /**
+     * @brief 状态转移
+     * @return @c nullptr 状态不改变
+     * @return @c this 重入当前状态
+     * @return pointer 希望变更到的状态
+    */
+    virtual self* transit() const = 0;
     virtual void entry() = 0;
     virtual void exit() = 0;
     template <typename _Tp, typename _Et>
@@ -103,15 +116,16 @@ template <typename _Tp> auto context<_Tp>::instance() -> self* {
 template <typename _Tp> template <typename _Et>
 requires std::is_base_of<event, _Et>::value
 auto context<_Tp>::handle(const _Et& _e) -> void {
-    auto* const _state_handled_result = _state->handle(_e);
-    if (_state_handled_result == nullptr) return;
+    auto* _state_handled_result = _state->handle(_e);
+    if (_state_handled_result == nullptr) {
+        _state_handled_result = _state->transit();
+        if (_state_handled_result == nullptr) return;
+    }
     auto* const _new_state = dynamic_cast<state_type*>(_state_handled_result);
     assert(_new_state != nullptr);
-    if (_new_state != _state) {
-        _state->exit();
-        _new_state->entry();
-        _state = _new_state;
-    }
+    _state->exit();
+    _new_state->entry();
+    _state = _new_state;
 }
 /**
  * @brief 状态初始化
