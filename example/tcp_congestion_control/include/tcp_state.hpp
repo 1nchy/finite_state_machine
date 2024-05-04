@@ -10,11 +10,11 @@
 struct tcp_congestion_state : public fsm::state {
     typedef fsm::state::self self;
     tcp_congestion_state& operator=(const tcp_congestion_state&);
-    virtual self* handle(const fsm::event&) = 0;
-    virtual self* handle(const new_ack&) = 0;
-    virtual self* handle(const duplicate_ack&) = 0;
-    virtual self* handle(const timeout&);
-    virtual self* transit() const;
+    virtual self* handle(const fsm::event&) override = 0;
+    virtual self* handle(const new_ack&) override = 0;
+    virtual self* handle(const duplicate_ack&) override = 0;
+    virtual self* handle(const timeout&) override;
+    virtual self* transit() const override;
     void entry() override {}
     void exit() override {}
     const size_t _MSS = 1460;
@@ -36,7 +36,7 @@ struct slow_start : public tcp_congestion_state {
     self* handle(const fsm::event& _e) override;
     self* handle(const new_ack& _e) override;
     self* handle(const duplicate_ack& _e) override;
-    self* transit() const;
+    self* transit() const override;
     void entry() override;
     void exit() override;
 };

@@ -9,5 +9,8 @@
 !/include/*
 !/src
 !/src/*
+!/resource
+!/resource/*
+!/resource/*/*
 
 !main.cpp
