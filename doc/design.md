@@ -82,14 +82,19 @@ private:
 };
 ~~~
 
-该定义存在两个问题，一是 context::handle 向 state::handle 转递事件时，一定会匹配到基类事件处理函数，各状态的各事件处理函数无法匹配到；二是状态机与状态几乎完全脱离，甚至其他状态机的状态也可以放在当前状态机中。
+该定义存在两个问题，
+一是 context::handle 向 state::handle 转递事件时，一定会匹配到基类事件处理函数，各状态的各事件处理函数无法匹配到；
+二是状态机与状态几乎完全脱离，甚至其他状态机的状态也可以放在当前状态机中。
 
 前面我们推导“各状态不能直接继承 state 类”结论时，是从事件处理函数的角度出发的。
 这里我们从有限状态机的角度再次分析一下。
 
-如果各状态直接继承自 state 类，那么状态机与状态几乎就完全分离了，或者说，我们既没法约束状态机当前状态的类型，也无法从状态机获取除当前状态外其他状态的信息。
+如果各状态直接继承自 state 类，那么状态机与状态几乎就完全分离了，
+或者说，我们既没法约束状态机当前状态的类型，也无法从状态机获取除当前状态外其他状态的信息。
 
-而让各状态继承定义了各类型事件处理函数的 state 子类 derived_state 的做法有个天然的好处——假如状态机的状态指针类型为 derived_state，那么就可以约束状态类型了。同时也避免了各个状态机混杂的问题。derived_state 作为一个独一无二的类，天然适合做有限状态机的形参。
+而让各状态继承定义了各类型事件处理函数的 state 子类 derived_state 的做法有个天然的好处——
+假如状态机的状态指针类型为 derived_state，那么就可以约束状态类型了。
+同时也避免了各个状态机混杂的问题。derived_state 作为一个独一无二的类，天然适合做有限状态机的形参。
 
 因此，我们更改有限状态机的定义如下；
 
@@ -111,3 +116,49 @@ private:
     state_type* _state = nullptr;
 };
 ~~~
+
+## 状态的条件转移
+
+除开部分事件直接引发的状态转移，状态机中还有一种很常见的条件转移。
+若所有状态的转移均在 handle 函数中实现，其实是有些耦合的。
+handle 函数中既包含了事件处理，还包含了对条件的判断。
+而且多种状态可能有相同的条件转移逻辑，都放在 handle 函数中会导致代码冗余。
+
+> 例如状态中保存了某计数器，当计数器到达某个值的时候，出发条件转移。
+>
+> 但倘若每个事件都会引起计数器的修改，那在每个事件的处理函数下，都将加上同样的条件判断代码。
+>
+> 倘若各状态对相同的引起计数器修改的事件的处理方式不同，那代码的冗余还将继续增加。
+
+因此我们将条件判断的代码抽离出来，在 state 中定义抽象方法 transit 来实现条件转移，并修改了 handle 的预期返回。
+
+~~~cpp
+class state {
+public:
+    virtual self* handle(const event&) = 0;
+    virtual self* transit() const = 0;
+};
+~~~
+
+这里的 handle 将尽量返回 nullptr，仅对事件状态转移做处理。
+
+同时，context 类中也得对事件处理流程做出修改：
+
+~~~cpp
+template <typename _Tp> template <typename _Et>
+requires std::is_base_of<event, _Et>::value
+auto context<_Tp>::handle(const _Et& _e) -> void {
+    auto* _result = _state->handle(_e);
+    if (_result == nullptr) {
+        _result = _state->transit();
+        if (_result == nullptr) return;
+    }
+    auto* const _new_state = dynamic_cast<state_type*>(_result);
+    assert(_new_state != nullptr);
+    _state->exit();
+    _new_state->entry();
+    _state = _new_state;
+}
+~~~
+
+在不改变状态，且不需要重入当前状态时，最好返回 nullptr。

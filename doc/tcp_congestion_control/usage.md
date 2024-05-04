@@ -92,12 +92,13 @@ struct fast_recovery : public tcp_congestion_state {
 auto* const _fsm = fsm::context<tcp_congestion_state>::instance()
 ~~~
 
-- 有限状态机状态初始化
+- 有限状态机状态初始化/关闭
 
-将有限状态机状态初始化为 slow_start。
+将有限状态机状态初始化为 slow_start 并关闭。
 
 ~~~cpp
-_fsm->initialize<slow_start>();
+_fsm->start<slow_start>();
+_fsm->stop();
 ~~~
 
 - 有限状态机接收事件

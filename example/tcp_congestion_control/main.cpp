@@ -5,7 +5,7 @@
 
 int main() {
     auto* const _fsm = fsm::context<tcp_congestion_state>::instance();
-    _fsm->initialize<slow_start>();
+    _fsm->start<slow_start>();
     _fsm->handle(new_ack());
     // _fsm->handle(fsm::event());
     _fsm->handle(new_ack());
@@ -18,6 +18,7 @@ int main() {
     _fsm->handle(duplicate_ack());
     _fsm->handle(duplicate_ack());
     _fsm->handle(timeout());
-    // fsm::context<tcp_congestion_state>::instance()->initialize<slow_start>();
+    // fsm::context<tcp_congestion_state>::instance()->start<slow_start>();
+    _fsm->stop();
     return 0;
 }

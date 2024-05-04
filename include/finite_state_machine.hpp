@@ -74,7 +74,8 @@ public:
         void handle(const _Et&);
     template <typename _St>
         requires std::is_base_of<state_type, _St>::value
-        void initialize();
+        void start();
+    void stop();
 private:
     template <typename _St>
         requires std::is_base_of<state_type, _St>::value
@@ -116,12 +117,12 @@ template <typename _Tp> auto context<_Tp>::instance() -> self* {
 template <typename _Tp> template <typename _Et>
 requires std::is_base_of<event, _Et>::value
 auto context<_Tp>::handle(const _Et& _e) -> void {
-    auto* _state_handled_result = _state->handle(_e);
-    if (_state_handled_result == nullptr) {
-        _state_handled_result = _state->transit();
-        if (_state_handled_result == nullptr) return;
+    auto* _result = _state->handle(_e);
+    if (_result == nullptr) {
+        _result = _state->transit();
+        if (_result == nullptr) return;
     }
-    auto* const _new_state = dynamic_cast<state_type*>(_state_handled_result);
+    auto* const _new_state = dynamic_cast<state_type*>(_result);
     assert(_new_state != nullptr);
     _state->exit();
     _new_state->entry();
@@ -133,9 +134,18 @@ auto context<_Tp>::handle(const _Et& _e) -> void {
 */
 template <typename _Tp> template <typename _St>
 requires std::is_base_of<typename context<_Tp>::state_type, _St>::value
-auto context<_Tp>::initialize() -> void {
+auto context<_Tp>::start() -> void {
     assert(this->_state == nullptr);
     transit<_St>();
+}
+/**
+ * @brief 关闭状态机
+*/
+template <typename _Tp>
+auto context<_Tp>::stop() -> void {
+    assert(this->_state != nullptr);
+    this->_state->exit();
+    this->_state = nullptr;
 }
 /**
  * @brief 状态切换
