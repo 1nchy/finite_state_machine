@@ -11,9 +11,9 @@ struct tcp_congestion_state : public fsm::state {
     typedef fsm::state::self self;
     tcp_congestion_state& operator=(const tcp_congestion_state&);
     virtual self* handle(const fsm::event&) override = 0;
-    virtual self* handle(const new_ack&) override = 0;
-    virtual self* handle(const duplicate_ack&) override = 0;
-    virtual self* handle(const timeout&) override;
+    virtual self* handle(const new_ack&) = 0;
+    virtual self* handle(const duplicate_ack&) = 0;
+    virtual self* handle(const timeout&);
     virtual self* transit() const override;
     void entry() override {}
     void exit() override {}
