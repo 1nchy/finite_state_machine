@@ -1,0 +1,13 @@
+*
+
+!.gitignore
+!README.md
+!LICENSE.md
+!CMakeLists.txt
+
+!/include
+!/include/*
+!/src
+!/src/*
+
+!main.cpp
