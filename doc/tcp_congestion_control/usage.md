@@ -21,6 +21,8 @@ TCP 拥塞控制中，有以下几种事件：
 1. 当遇到 dupACKcount == 3 时，各状态的转移方式一致。
 2. 当处于 slow start 状态时，需要对 cwnd $\ge$ ssthresh 做额外的状态转移。
 
+![TCP 拥塞控制有限状态机](../../example/tcp_congestion_control/resource/pic/tcp_congestion_control_fsm.png)
+
 ## 事件定义
 
 ~~~cpp
