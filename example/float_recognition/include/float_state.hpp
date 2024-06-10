@@ -60,8 +60,5 @@ struct HIJ : public float_recognition_state {
     using fsm::state::self;
     self* handle(const digit& _e) override;
 };
-struct error : public float_recognition_state {
-
-};
 
 #endif // _FLOAT_STATE_HPP_
