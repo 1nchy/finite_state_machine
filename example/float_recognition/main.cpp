@@ -10,7 +10,7 @@ int main() {
     _fsm->accept<HIJ>();
     _fsm->start<AB>();
 
-    const std::string _s = "-0.114e514\n";
+    const std::string _s = "-0.114e5.14\n";
     for (const auto& _c : _s) {
         bool _result;
         if (isdigit(_c)) {
@@ -32,10 +32,10 @@ int main() {
         if (!_result) {
             size_t _len = _fsm->state()->length();
             if (_fsm->acceptable()) {
-                printf("it's a float! [%s]\n", _s.substr(0, _len).c_str());
+                printf("start with a float! [%s]\n", _s.substr(0, _len).c_str());
             }
             else {
-                printf("it's not a float. error in [%ld]\n", _len);
+                printf("not start with a float. error in [%ld]\n", _len);
             }
             break;
         }
