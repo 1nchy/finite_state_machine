@@ -10,7 +10,7 @@ int main() {
     _fsm->accept<HIJ>();
     _fsm->start<AB>();
 
-    const std::string _s = "-0.114e5.14\n";
+    const std::string _s = "-0.114e5.14\n"; // 务必在字符串末尾加上一个字符集以外的字符，以便让自动机在循环内终止
     for (const auto& _c : _s) {
         bool _result;
         if (isdigit(_c)) {
@@ -40,4 +40,6 @@ int main() {
             break;
         }
     }
+
+    return 0;
 }
