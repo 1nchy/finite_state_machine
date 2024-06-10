@@ -14,13 +14,14 @@ struct tcp_congestion_state : public fsm::state {
     virtual self* handle(const new_ack&) = 0;
     virtual self* handle(const duplicate_ack&) = 0;
     virtual self* handle(const timeout&);
-    virtual self* transit() const override;
+    virtual self* transit(self* const) const override;
     void entry() override {}
     void exit() override {}
     const size_t _MSS = 1460;
     size_t _dup_ack_count = 0;
     size_t _cwnd = _MSS;
     size_t _ssthresh = 64 * 1024;
+    bool _fault = false;
     void clone(const tcp_congestion_state* const _s); // assignment for sub state
     void show() {
         printf("  (dup ack count = %ld, cwnd = %ld, _ssthresh = %ld)\n", _dup_ack_count, _cwnd, _ssthresh);
@@ -36,7 +37,7 @@ struct slow_start : public tcp_congestion_state {
     self* handle(const fsm::event& _e) override;
     self* handle(const new_ack& _e) override;
     self* handle(const duplicate_ack& _e) override;
-    self* transit() const override;
+    self* transit(self* const) const override;
     void entry() override;
     void exit() override;
 };

@@ -16,7 +16,8 @@ auto tcp_congestion_state::handle(const timeout& _e) -> self* {
     printf("retransmit new segment.\n");
     return _ret;
 }
-auto tcp_congestion_state::transit() const -> self* {
+auto tcp_congestion_state::transit(self* const _s) const -> self* {
+    if (_fault) return nullptr;
     if (_dup_ack_count >= 3) {
         auto* const _ret = fsm::state::instance<fast_recovery>();
         _ret->_ssthresh = _cwnd / 2;
@@ -24,7 +25,7 @@ auto tcp_congestion_state::transit() const -> self* {
         _ret->_dup_ack_count = 0;
         return _ret;
     }
-    return nullptr;
+    return _s;
 }
 auto tcp_congestion_state::clone(const tcp_congestion_state* const _s)
 -> void {
@@ -35,7 +36,7 @@ auto tcp_congestion_state::clone(const tcp_congestion_state* const _s)
 
 auto slow_start::handle(const fsm::event& _e) -> self* {
     printf("message from slow_start\n");
-    this->dispatch<tcp_congestion_state>(timeout());
+    _fault = true;
     return nullptr;
 }
 auto slow_start::handle(const new_ack& _e) -> self* {
@@ -47,13 +48,13 @@ auto slow_start::handle(const duplicate_ack& _e) -> self* {
     ++_dup_ack_count;
     return nullptr;
 }
-auto slow_start::transit() const -> self* {
+auto slow_start::transit(self* const _s) const -> self* {
     if (_cwnd >= _ssthresh) {
         auto* const _ret = fsm::state::instance<congestion_avoidance>();
         _ret->clone(this);
         return _ret;
     }
-    return tcp_congestion_state::transit();
+    return tcp_congestion_state::transit(_s);
 }
 auto slow_start::entry() -> void {
     printf("entry slow_start.\n");
