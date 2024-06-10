@@ -7,6 +7,8 @@
 #include <cassert>
 #include <cstdio>
 
+#include <unordered_set>
+
 namespace fsm {
 
 struct event;
@@ -32,19 +34,20 @@ public:
     self& operator=(const self&) = default;
     ~state() = default;
     /**
-     * @brief 事件处理
-     * @return @c nullptr 状态不改变（推荐）
+     * @brief 事件处理（默认的事件处理函数是事实上的意外处理函数）
+     * @return @c nullptr 状态不改变（将状态转移任务转交给 @c transit 函数）
      * @return @c this 重入当前状态
      * @return pointer 希望变更到的状态
     */
     virtual self* handle(const event&) = 0;
     /**
      * @brief 状态转移
-     * @return @c nullptr 状态不改变
-     * @return @c this 重入当前状态
+     * @param _s 实际状态指针
+     * @return @c nullptr 自检错误
+     * @return @c  _s 重入当前状态
      * @return pointer 希望变更到的状态
     */
-    virtual self* transit() const = 0;
+    virtual self* transit(self* const _s) const = 0;
     virtual void entry() = 0;
     virtual void exit() = 0;
     template <typename _Tp, typename _Et>
@@ -71,17 +74,26 @@ public:
     static self* instance();
     template <typename _Et>
         requires std::is_base_of<event, _Et>::value
-        void handle(const _Et&);
+        bool handle(const _Et&);
     template <typename _St>
         requires std::is_base_of<state_type, _St>::value
         void start();
+    template <typename _St>
+        requires std::is_base_of<state_type, _St>::value
+        void accept();
+    template <typename _St>
+        requires std::is_base_of<state_type, _St>::value
+        void reject();
     void stop();
+    bool acceptable() const;
+    const state_type* state() const;
 private:
     template <typename _St>
         requires std::is_base_of<state_type, _St>::value
         void transit();
 private:
     state_type* _state = nullptr;
+    std::unordered_set<state_type*> _acceptable_states;
 };
 
 
@@ -116,17 +128,20 @@ template <typename _Tp> auto context<_Tp>::instance() -> self* {
 */
 template <typename _Tp> template <typename _Et>
 requires std::is_base_of<event, _Et>::value
-auto context<_Tp>::handle(const _Et& _e) -> void {
+auto context<_Tp>::handle(const _Et& _e) -> bool {
     auto* _result = _state->handle(_e);
     if (_result == nullptr) {
-        _result = _state->transit();
-        if (_result == nullptr) return;
+        _result = _state->transit(_state);
+        if (_result == nullptr) {
+            return false;
+        }
     }
     auto* const _new_state = dynamic_cast<state_type*>(_result);
     assert(_new_state != nullptr);
     _state->exit();
     _new_state->entry();
     _state = _new_state;
+    return true;
 }
 /**
  * @brief 状态初始化
@@ -139,6 +154,25 @@ auto context<_Tp>::start() -> void {
     transit<_St>();
 }
 /**
+ * @brief 可接受的结束状态
+ * @tparam _St 状态类型
+*/
+template <typename _Tp> template <typename _St>
+requires std::is_base_of<typename context<_Tp>::state_type, _St>::value
+auto context<_Tp>::accept() -> void {
+    this->_acceptable_states.insert(state::instance<_St>());
+}
+/**
+ * @brief 不可接受的结束状态
+ * @details 若可接受列表非空，则所有状态均默认为不可接受的结束状态
+ * @tparam _St 状态类型
+*/
+template <typename _Tp> template <typename _St>
+requires std::is_base_of<typename context<_Tp>::state_type, _St>::value
+auto context<_Tp>::reject() -> void {
+    this->_acceptable_states.erase(state::instance<_St>());
+}
+/**
  * @brief 关闭状态机
 */
 template <typename _Tp>
@@ -146,6 +180,20 @@ auto context<_Tp>::stop() -> void {
     assert(this->_state != nullptr);
     this->_state->exit();
     this->_state = nullptr;
+}
+/**
+ * @brief 当前状态是否可接受
+*/
+template <typename _Tp>
+auto context<_Tp>::acceptable() const -> bool {
+    return _acceptable_states.contains(_state);
+}
+/**
+ * @brief 返回当前状态
+*/
+template <typename _Tp>
+auto context<_Tp>::state() const -> const state_type* {
+    return _state;
 }
 /**
  * @brief 状态切换
