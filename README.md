@@ -16,6 +16,8 @@
 
 我们以 tcp 拥塞控制的有限状态机为例，详情见 [TCP 拥塞控制](./doc/tcp_congestion_control/usage.md)。
 
+我们还使用了浮点数识别的有限自动机作为我们的示例，详情见 [浮点数识别](./doc/float_recognition/usage.md)。
+
 ### 设计
 
 该有限状态机的设计，包含了状态进入/退出动作、事件响应两种主要的特性。
@@ -37,6 +39,8 @@ finite_state_machine
 ├── include                     # 头文件（对外使用）
 │   └── ...
 └── example                     # 示例
-    └── tcp_congestion_control  # tcp 拥塞控制示例
+    ├── tcp_congestion_control  # tcp 拥塞控制示例
+    │   └── ...
+    └── float_recognition  # 浮点数识别示例
         └── ...
 ~~~
