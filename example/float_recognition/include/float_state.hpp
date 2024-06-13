@@ -12,10 +12,10 @@ struct float_recognition_state : public fsm::state {
     virtual self* handle(const dot&);
     virtual self* handle(const alpha&);
     virtual self* handle(const sign&);
-    virtual self* transit(self* const) const override;
+    self* transit(self* const) const override;
+    self* clone(const self* const) override;
     void entry() override {}
     void exit() override {}
-    self* clone(const float_recognition_state* const);
     size_t length() const { return _length; }
     size_t _length = 0;
     bool _end_of_float = false;

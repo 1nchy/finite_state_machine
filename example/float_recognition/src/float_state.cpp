@@ -27,8 +27,10 @@ auto float_recognition_state::transit(self* const _s) const -> self* {
     if (_end_of_float) return nullptr;
     return _s;
 }
-auto float_recognition_state::clone(const float_recognition_state* const _s) -> self* {
-    if (this != _s) *this = *_s;
+auto float_recognition_state::clone(const self* const _s) -> self* {
+    const auto* const _p = dynamic_cast<const float_recognition_state* const>(_s);
+    assert(_p != nullptr);
+    if (this != _s && _p != nullptr) *this = *_p;
     return this;
 }
 
