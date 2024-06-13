@@ -17,14 +17,14 @@ template <typename _Tp> requires std::is_base_of<state, _Tp>::value class contex
 
 /**
  * @brief 有限状态机的事件基类
-*/
+ */
 struct event {};
 
 /**
  * @brief 有限状态机的状态基类
  * 
  * 基于此类派生有限状态类型 @c state_type ，其中定义用于处理所有类型事件的纯虚函数
-*/
+ */
 class state {
 protected:
     typedef state self;
@@ -38,7 +38,7 @@ public:
      * @return @c nullptr 状态不改变（将状态转移任务转交给 @c transit 函数）
      * @return @c this 重入当前状态
      * @return pointer 希望变更到的状态
-    */
+     */
     virtual self* handle(const event&) = 0;
     /**
      * @brief 状态转移
@@ -46,8 +46,15 @@ public:
      * @return @c nullptr 自检错误
      * @return @c  _s 重入当前状态
      * @return pointer 希望变更到的状态
-    */
+     */
     virtual self* transit(self* const _s) const = 0;
+    /**
+     * @brief 状态复制
+     * @param _s 被复制的状态指针
+     * @return 复制后自身状态指针 @c this
+     * @details 子类中实现时，应该使用 dynamic_cast 将参数转换为子类指针，再进行复制操作
+     */
+    virtual self* clone(const self* const _s) = 0;
     virtual void entry() = 0;
     virtual void exit() = 0;
     template <typename _Tp, typename _Et>
@@ -61,7 +68,7 @@ public:
 /**
  * @brief 有限状态机
  * @tparam _Tp 有限状态类型
-*/
+ */
 template <typename _Tp> requires std::is_base_of<state, _Tp>::value class context {
     typedef context<_Tp> self;
     context() = default;
@@ -101,7 +108,7 @@ private:
  * @brief 向指定的有限状态机发送事件
  * @tparam _Tp 有限状态类型（@c state 派生类）
  * @tparam _Et 派生事件类型（@c event 派生类）
-*/
+ */
 template <typename _Tp, typename _Et>
 requires std::is_base_of<state, _Tp>::value && std::is_base_of<event, _Et>::value
 auto state::dispatch(const _Et& _e) -> void {
@@ -110,7 +117,7 @@ auto state::dispatch(const _Et& _e) -> void {
 /**
  * @brief 状态单例
  * @tparam _Tp 状态类型（@c state_type 有限状态类型的派生类）
-*/
+ */
 template <typename _Tp> requires std::is_base_of<state, _Tp>::value
 auto state::instance() -> _Tp* {
     static _Tp _s;
@@ -125,7 +132,7 @@ template <typename _Tp> auto context<_Tp>::instance() -> self* {
 /**
  * @brief 事件处理
  * @tparam _Et 派生事件类型
-*/
+ */
 template <typename _Tp> template <typename _Et>
 requires std::is_base_of<event, _Et>::value
 auto context<_Tp>::handle(const _Et& _e) -> bool {
@@ -146,7 +153,7 @@ auto context<_Tp>::handle(const _Et& _e) -> bool {
 /**
  * @brief 状态初始化
  * @tparam _St 状态类型
-*/
+ */
 template <typename _Tp> template <typename _St>
 requires std::is_base_of<typename context<_Tp>::state_type, _St>::value
 auto context<_Tp>::start() -> void {
@@ -156,7 +163,7 @@ auto context<_Tp>::start() -> void {
 /**
  * @brief 可接受的结束状态
  * @tparam _St 状态类型
-*/
+ */
 template <typename _Tp> template <typename _St>
 requires std::is_base_of<typename context<_Tp>::state_type, _St>::value
 auto context<_Tp>::accept() -> void {
@@ -166,7 +173,7 @@ auto context<_Tp>::accept() -> void {
  * @brief 不可接受的结束状态
  * @details 若可接受列表非空，则所有状态均默认为不可接受的结束状态
  * @tparam _St 状态类型
-*/
+ */
 template <typename _Tp> template <typename _St>
 requires std::is_base_of<typename context<_Tp>::state_type, _St>::value
 auto context<_Tp>::reject() -> void {
@@ -174,7 +181,7 @@ auto context<_Tp>::reject() -> void {
 }
 /**
  * @brief 关闭状态机
-*/
+ */
 template <typename _Tp>
 auto context<_Tp>::stop() -> void {
     assert(this->_state != nullptr);
@@ -183,14 +190,14 @@ auto context<_Tp>::stop() -> void {
 }
 /**
  * @brief 当前状态是否可接受
-*/
+ */
 template <typename _Tp>
 auto context<_Tp>::acceptable() const -> bool {
     return _acceptable_states.contains(_state);
 }
 /**
  * @brief 返回当前状态
-*/
+ */
 template <typename _Tp>
 auto context<_Tp>::state() const -> const state_type* {
     return _state;
@@ -198,7 +205,7 @@ auto context<_Tp>::state() const -> const state_type* {
 /**
  * @brief 状态切换
  * @tparam _St 状态类型
-*/
+ */
 template <typename _Tp> template <typename _St>
 requires std::is_base_of<typename context<_Tp>::state_type, _St>::value
 auto context<_Tp>::transit() -> void {
