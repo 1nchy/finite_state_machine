@@ -9,17 +9,17 @@ auto tcp_congestion_state::operator=(const tcp_congestion_state& _s)
     return *this;
 }
 auto tcp_congestion_state::handle(const timeout& _e) -> self* {
-    auto* const _ret = fsm::state::instance<slow_start>();
-    _ret->_ssthresh = _cwnd / 2;
-    _ret->_cwnd = _MSS;
-    _ret->_dup_ack_count = 0;
+    _ssthresh = _cwnd / 2;
+    _cwnd = _MSS;
+    _dup_ack_count = 0;
     printf("retransmit new segment.\n");
-    return _ret;
+    return fsm::state::instance<slow_start>()->clone(this);
 }
 auto tcp_congestion_state::transit(self* const _s) const -> self* {
     if (_fault) return nullptr;
     if (_dup_ack_count >= 3) {
-        auto* const _ret = fsm::state::instance<fast_recovery>();
+        auto* const _ret = dynamic_cast<fast_recovery*>(fsm::state::instance<fast_recovery>()->clone(this));
+        assert(_ret != nullptr);
         _ret->_ssthresh = _cwnd / 2;
         _ret->_cwnd = _ret->_ssthresh + 3 * _MSS;
         _ret->_dup_ack_count = 0;
@@ -27,10 +27,12 @@ auto tcp_congestion_state::transit(self* const _s) const -> self* {
     }
     return _s;
 }
-auto tcp_congestion_state::clone(const tcp_congestion_state* const _s)
--> void {
-    if (this == _s) return;
-    *this = *_s;
+auto tcp_congestion_state::clone(const self* const _s)
+-> self* {
+    const auto* const _p = dynamic_cast<const tcp_congestion_state* const>(_s);
+    assert(_p != nullptr);
+    if (this != _s && _p != nullptr) *this = *_p;
+    return this;
 }
 
 
@@ -50,9 +52,7 @@ auto slow_start::handle(const duplicate_ack& _e) -> self* {
 }
 auto slow_start::transit(self* const _s) const -> self* {
     if (_cwnd >= _ssthresh) {
-        auto* const _ret = fsm::state::instance<congestion_avoidance>();
-        _ret->clone(this);
-        return _ret;
+        return fsm::state::instance<congestion_avoidance>()->clone(this);
     }
     return tcp_congestion_state::transit(_s);
 }
@@ -93,11 +93,9 @@ auto fast_recovery::handle(const fsm::event& _e) -> self* {
     return nullptr;
 }
 auto fast_recovery::handle(const new_ack& _e) -> self* {
-    auto* const _ret = fsm::state::instance<congestion_avoidance>();
-    _ret->_cwnd = _ssthresh;
-    _ret->_ssthresh = _ssthresh;
-    _ret->_dup_ack_count = 0;
-    return _ret;
+    _cwnd = _ssthresh;
+    _dup_ack_count = 0;
+    return fsm::state::instance<congestion_avoidance>()->clone(this);
 }
 auto fast_recovery::handle(const duplicate_ack& _e) -> self* {
     _cwnd += _MSS;
