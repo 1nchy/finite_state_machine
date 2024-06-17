@@ -13,7 +13,7 @@
 |$float$|$('+'+'-')?unsigned\ opt\_fraction\ opt\_exponent$|
 
 
-- float NFA (from A to G)
+- float NFA (from A)
 ~~~mermaid
 graph LR
 A(("A")) --> B(("B")) --"0-9"--> C(("C")) --"."--> D(("D")) --"0-9"--> E(("E")) --> F(("F")) --"e"--> G(("G")) --> H(("H")) --"0-9"--> I(("I")) --> J((("J")))
@@ -58,17 +58,17 @@ struct sign : public fsm::event {}; // + -
 
 ~~~cpp
 struct float_recognition_state : public fsm::state {
-    typedef fsm::state::self self;
+    using state = fsm::state;
     float_recognition_state& operator=(const float_recognition_state&);
-    virtual self* handle(const fsm::event&) override;
-    virtual self* handle(const digit&);
-    virtual self* handle(const dot&);
-    virtual self* handle(const alpha&);
-    virtual self* handle(const sign&);
-    virtual self* transit(self* const) const override;
+    virtual state* handle(const fsm::event&) override;
+    virtual state* handle(const digit&);
+    virtual state* handle(const dot&);
+    virtual state* handle(const alpha&);
+    virtual state* handle(const sign&);
+    virtual state* transit(state* const) const override;
     void entry() override {}
     void exit() override {}
-    self* clone(const float_recognition_state* const);
+    state* clone(const float_recognition_state* const);
     size_t length() const { return _length; }
     size_t _length = 0;
     bool _end_of_float = false;

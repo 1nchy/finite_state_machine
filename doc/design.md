@@ -17,11 +17,10 @@ event 作为所有事件的基类，我们定义的所有事件都应该继承�
 ~~~cpp
 class state {
 protected:
-    typedef state self;
     state() = default;
 public:
-    state(const self&) = delete;
-    self& operator=(const self&) = delete;
+    state(const state&) = delete;
+    state& operator=(const state&) = delete;
     ~state() = default;
 };
 ~~~
@@ -37,7 +36,7 @@ public:
 我们把事件处理函数定义为
 
 ~~~cpp
-virtual self* handle(const event&) = 0;
+virtual state* handle(const event&) = 0;
 ~~~
 
 但这种定义无法满足我们分离各事件处理函数的需要——所有处理过程都将在该函数中，各状态将根据 `event` 的某虚函数方法区分各事件。
@@ -49,7 +48,7 @@ virtual self* handle(const event&) = 0;
 class state {
     // omitted
 public:
-    virtual self* handle(const event&) = 0;
+    virtual state* handle(const event&) = 0;
     virtual void entry() = 0;
     virtual void exit() = 0;
     template <typename _Tp>
@@ -57,8 +56,8 @@ public:
         static _Tp* instance();
 };
 class derived_state : public state {
-    virtual self* handle(const derived_event1&) = 0;
-    virtual self* handle(const derived_event2&) = 0;
+    virtual state* handle(const derived_event1&) = 0;
+    virtual state* handle(const derived_event2&) = 0;
 };
 class state1 : public derived_state {};
 class state2 : public derived_state {};
@@ -138,8 +137,8 @@ private:
 ~~~cpp
 class state {
 public:
-    virtual self* handle(const event&) = 0;
-    virtual self* transit(self* const) const = 0;
+    virtual state* handle(const event&) = 0;
+    virtual state* transit(state* const) const = 0;
 };
 ~~~
 

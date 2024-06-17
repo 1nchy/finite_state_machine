@@ -39,12 +39,12 @@ struct timeout : public fsm::event {};
 
 ~~~cpp
 struct tcp_congestion_state : public fsm::state {
-    using fsm::state::self;
-    virtual self* handle(const fsm::event&) override = 0;
-    virtual self* handle(const new_ack&) override = 0;
-    virtual self* handle(const duplicate_ack&) override = 0;
-    virtual self* handle(const timeout&) override;
-    virtual self* transit() const override;
+    using state = fsm::state;
+    virtual state* handle(const fsm::event&) override = 0;
+    virtual state* handle(const new_ack&) override = 0;
+    virtual state* handle(const duplicate_ack&) override = 0;
+    virtual state* handle(const timeout&) override;
+    virtual state* transit() const override;
     void entry() override {}
     void exit() override {}
 };
@@ -56,27 +56,27 @@ struct tcp_congestion_state : public fsm::state {
 
 ~~~cpp
 struct slow_start : public tcp_congestion_state {
-    using fsm::state::self;
-    self* handle(const fsm::event& _e) override;
-    self* handle(const new_ack& _e) override;
-    self* handle(const duplicate_ack& _e) override;
-    self* transit() const override;
+    using state = fsm::state;
+    state* handle(const fsm::event& _e) override;
+    state* handle(const new_ack& _e) override;
+    state* handle(const duplicate_ack& _e) override;
+    state* transit() const override;
     void entry() override;
     void exit() override;
 };
 struct congestion_avoidance : public tcp_congestion_state {
-    using fsm::state::self;
-    self* handle(const fsm::event& _e) override;
-    self* handle(const new_ack& _e) override;
-    self* handle(const duplicate_ack& _e) override;
+    using state = fsm::state;
+    state* handle(const fsm::event& _e) override;
+    state* handle(const new_ack& _e) override;
+    state* handle(const duplicate_ack& _e) override;
     void entry() override;
     void exit() override;
 };
 struct fast_recovery : public tcp_congestion_state {
-    using fsm::state::self;
-    self* handle(const fsm::event& _e) override;
-    self* handle(const new_ack& _e) override;
-    self* handle(const duplicate_ack& _e) override;
+    using state = fsm::state;
+    state* handle(const fsm::event& _e) override;
+    state* handle(const new_ack& _e) override;
+    state* handle(const duplicate_ack& _e) override;
     void entry() override;
     void exit() override;
 };
@@ -119,7 +119,7 @@ _fsm->handle(timeout());
 需要注意的是最后需要**返回父类的条件转移函数**。
 
 ~~~cpp
-auto tcp_congestion_state::transit() const -> self* {
+auto tcp_congestion_state::transit() const -> state* {
     if (_dup_ack_count >= 3) {
         auto* const _ret = fsm::state::instance<fast_recovery>();
         _ret->_ssthresh = _cwnd / 2;
@@ -129,7 +129,7 @@ auto tcp_congestion_state::transit() const -> self* {
     }
     return nullptr;
 }
-auto slow_start::transit() const -> self* {
+auto slow_start::transit() const -> state* {
     if (_cwnd >= _ssthresh) {
         auto* const _ret = fsm::state::instance<congestion_avoidance>();
         _ret->clone(this);
@@ -144,7 +144,7 @@ auto slow_start::transit() const -> self* {
 这里仅以 slow_start 相关的事件处理为例。
 
 ~~~cpp
-auto tcp_congestion_state::handle(const timeout& _e) -> self* {
+auto tcp_congestion_state::handle(const timeout& _e) -> state* {
     auto* const _ret = fsm::state::instance<slow_start>();
     _ret->_ssthresh = _cwnd / 2;
     _ret->_cwnd = _MSS;
@@ -152,17 +152,17 @@ auto tcp_congestion_state::handle(const timeout& _e) -> self* {
     printf("retransmit new segment.\n");
     return _ret;
 }
-auto slow_start::handle(const fsm::event& _e) -> self* {
+auto slow_start::handle(const fsm::event& _e) -> state* {
     printf("message from slow_start\n");
     this->dispatch<tcp_congestion_state>(timeout());
     return nullptr;
 }
-auto slow_start::handle(const new_ack& _e) -> self* {
+auto slow_start::handle(const new_ack& _e) -> state* {
     _dup_ack_count = 0; _cwnd += _MSS;
     printf("transmit new segment.\n");
     return nullptr;
 }
-auto slow_start::handle(const duplicate_ack& _e) -> self* {
+auto slow_start::handle(const duplicate_ack& _e) -> state* {
     ++_dup_ack_count;
     return nullptr;
 }
