@@ -27,11 +27,10 @@ struct event {};
  */
 class state {
 protected:
-    typedef state self;
     state() = default;
 public:
-    state(const self&) = delete;
-    self& operator=(const self&) = default;
+    state(const state&) = delete;
+    state& operator=(const state&) = default;
     ~state() = default;
     /**
      * @brief 事件处理（默认的事件处理函数是事实上的意外处理函数）
@@ -39,7 +38,7 @@ public:
      * @return @c this 重入当前状态
      * @return pointer 希望变更到的状态
      */
-    virtual self* handle(const event&) = 0;
+    virtual state* handle(const event&) = 0;
     /**
      * @brief 状态转移
      * @param _s 实际状态指针
@@ -47,14 +46,14 @@ public:
      * @return @c  _s 重入当前状态
      * @return pointer 希望变更到的状态
      */
-    virtual self* transit(self* const _s) const = 0;
+    virtual state* transit(state* const _s) const = 0;
     /**
      * @brief 状态复制
      * @param _s 被复制的状态指针
      * @return 复制后自身状态指针 @c this
      * @details 子类中实现时，应该使用 dynamic_cast 将参数转换为子类指针，再进行复制操作
      */
-    virtual self* clone(const self* const _s) = 0;
+    virtual state* clone(const state* const _s) = 0;
     virtual void entry() = 0;
     virtual void exit() = 0;
     template <typename _Tp, typename _Et>

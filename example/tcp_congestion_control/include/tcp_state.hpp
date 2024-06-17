@@ -8,14 +8,14 @@
 #include "tcp_event.hpp"
 
 struct tcp_congestion_state : public fsm::state {
-    typedef fsm::state::self self;
+    using state = fsm::state;
     tcp_congestion_state& operator=(const tcp_congestion_state&);
-    virtual self* handle(const fsm::event&) override = 0;
-    virtual self* handle(const new_ack&) = 0;
-    virtual self* handle(const duplicate_ack&) = 0;
-    virtual self* handle(const timeout&);
-    self* transit(self* const) const override;
-    self* clone(const self* const) override;
+    virtual state* handle(const fsm::event&) override = 0;
+    virtual state* handle(const new_ack&) = 0;
+    virtual state* handle(const duplicate_ack&) = 0;
+    virtual state* handle(const timeout&);
+    state* transit(state* const) const override;
+    state* clone(const state* const) override;
     void entry() override {}
     void exit() override {}
     const size_t _MSS = 1460;
@@ -34,27 +34,27 @@ struct congestion_avoidance;
 struct fast_recovery;
 
 struct slow_start : public tcp_congestion_state {
-    using fsm::state::self;
-    self* handle(const fsm::event& _e) override;
-    self* handle(const new_ack& _e) override;
-    self* handle(const duplicate_ack& _e) override;
-    self* transit(self* const) const override;
+    using state = fsm::state;
+    state* handle(const fsm::event& _e) override;
+    state* handle(const new_ack& _e) override;
+    state* handle(const duplicate_ack& _e) override;
+    state* transit(state* const) const override;
     void entry() override;
     void exit() override;
 };
 struct congestion_avoidance : public tcp_congestion_state {
-    using fsm::state::self;
-    self* handle(const fsm::event& _e) override;
-    self* handle(const new_ack& _e) override;
-    self* handle(const duplicate_ack& _e) override;
+    using state = fsm::state;
+    state* handle(const fsm::event& _e) override;
+    state* handle(const new_ack& _e) override;
+    state* handle(const duplicate_ack& _e) override;
     void entry() override;
     void exit() override;
 };
 struct fast_recovery : public tcp_congestion_state {
-    using fsm::state::self;
-    self* handle(const fsm::event& _e) override;
-    self* handle(const new_ack& _e) override;
-    self* handle(const duplicate_ack& _e) override;
+    using state = fsm::state;
+    state* handle(const fsm::event& _e) override;
+    state* handle(const new_ack& _e) override;
+    state* handle(const duplicate_ack& _e) override;
     void entry() override;
     void exit() override;
 };
