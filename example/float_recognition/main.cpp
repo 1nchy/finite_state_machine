@@ -3,6 +3,9 @@
 #include "float_event.hpp"
 #include "float_state.hpp"
 
+#include <string>
+#include <cstring>
+
 int main() {
     auto* const _fsm = fsm::context<float_recognition_state>::instance();
     _fsm->accept<BCFJ>();
