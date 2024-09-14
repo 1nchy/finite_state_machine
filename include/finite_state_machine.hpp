@@ -105,7 +105,7 @@ public:
             std::string_view _ns = _M_state()->handle(_e);
             if (_ns.empty()) {
                 _ns = _M_state()->transit(_M_state());
-                if (_ns.empty()) return true;
+                // if (_ns.empty()) return true;
             }
             _M_transit(_ns);
             return true;
@@ -175,9 +175,13 @@ private:
     void _M_transit(const std::string_view _s) {
         if (!_state.empty()) {
             _M_state()->exit();
+        }
+        if (!_state.empty() && !_s.empty()) {
             _M_state(_s)->assign(*_M_state());
         }
-        _state = _s;
+        if (!_s.empty()) {
+            _state = _s;
+        }
         _M_state()->entry();
     }
 private:
