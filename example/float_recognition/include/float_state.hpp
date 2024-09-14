@@ -7,13 +7,13 @@
 struct float_recognition_state : public fsm::state {
     using state = fsm::state;
     float_recognition_state& operator=(const float_recognition_state&);
-    virtual state* handle(const fsm::event&) override;
-    virtual state* handle(const digit&);
-    virtual state* handle(const dot&);
-    virtual state* handle(const alpha&);
-    virtual state* handle(const sign&);
-    state* transit(state* const) const override;
-    state* clone(const state* const) override;
+    virtual std::string_view handle(const fsm::event&) override;
+    virtual std::string_view handle(const digit&);
+    virtual std::string_view handle(const dot&);
+    virtual std::string_view handle(const alpha&);
+    virtual std::string_view handle(const sign&);
+    std::string_view transit(state* const) override;
+    void assign(const state&) override;
     void entry() override {}
     void exit() override {}
     size_t length() const { return _length; }
@@ -22,43 +22,51 @@ struct float_recognition_state : public fsm::state {
 };
 
 struct AB : public float_recognition_state {
+    FSM_STATE_LABEL
     using state = fsm::state;
-    state* handle(const digit& _e) override;
-    state* handle(const sign& _e) override;
+    std::string_view handle(const digit& _e) override;
+    std::string_view handle(const sign& _e) override;
     void entry() override {
         printf("start parsing\n");
     }
 };
 struct B : public float_recognition_state {
-    state* handle(const digit& _e) override;
+    FSM_STATE_LABEL
+    std::string_view handle(const digit& _e) override;
 };
 struct BCFJ : public float_recognition_state {
+    FSM_STATE_LABEL
     using state = fsm::state;
-    state* handle(const digit& _e) override;
-    state* handle(const dot& _e) override;
-    state* handle(const alpha& _e) override;
+    std::string_view handle(const digit& _e) override;
+    std::string_view handle(const dot& _e) override;
+    std::string_view handle(const alpha& _e) override;
 };
 struct D : public float_recognition_state {
+    FSM_STATE_LABEL
     using state = fsm::state;
-    state* handle(const digit& _e) override;
+    std::string_view handle(const digit& _e) override;
 };
 struct DEFJ : public float_recognition_state {
+    FSM_STATE_LABEL
     using state = fsm::state;
-    state* handle(const digit& _e) override;
-    state* handle(const alpha& _e) override;
+    std::string_view handle(const digit& _e) override;
+    std::string_view handle(const alpha& _e) override;
 };
 struct GH : public float_recognition_state {
+    FSM_STATE_LABEL
     using state = fsm::state;
-    state* handle(const digit& _e) override;
-    state* handle(const sign& _e) override;
+    std::string_view handle(const digit& _e) override;
+    std::string_view handle(const sign& _e) override;
 };
 struct H : public float_recognition_state {
+    FSM_STATE_LABEL
     using state = fsm::state;
-    state* handle(const digit& _e) override;
+    std::string_view handle(const digit& _e) override;
 };
 struct HIJ : public float_recognition_state {
+    FSM_STATE_LABEL
     using state = fsm::state;
-    state* handle(const digit& _e) override;
+    std::string_view handle(const digit& _e) override;
 };
 
 #endif // _FLOAT_STATE_HPP_

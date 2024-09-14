@@ -8,51 +8,47 @@ auto tcp_congestion_state::operator=(const tcp_congestion_state& _s)
     _ssthresh = _s._ssthresh;
     return *this;
 }
-auto tcp_congestion_state::handle(const timeout& _e) -> state* {
+auto tcp_congestion_state::handle(const timeout& _e) -> std::string_view {
     _ssthresh = _cwnd / 2;
     _cwnd = _MSS;
     _dup_ack_count = 0;
     printf("retransmit new segment.\n");
-    return fsm::state::instance<slow_start>()->clone(this);
+    return slow_start::label();
 }
-auto tcp_congestion_state::transit(state* const _s) const -> state* {
-    if (_fault) return nullptr;
+auto tcp_congestion_state::transit(state* const _s) -> std::string_view {
+    if (_fault) throw std::logic_error("internal error in fsm");
     if (_dup_ack_count >= 3) {
-        auto* const _ret = dynamic_cast<fast_recovery*>(fsm::state::instance<fast_recovery>()->clone(this));
-        assert(_ret != nullptr);
-        _ret->_ssthresh = _cwnd / 2;
-        _ret->_cwnd = _ret->_ssthresh + 3 * _MSS;
-        _ret->_dup_ack_count = 0;
-        return _ret;
+        const auto _old_ssthresh = _ssthresh;
+        _ssthresh = _cwnd / 2;
+        _cwnd = _old_ssthresh + 3 * _MSS;
+        _dup_ack_count = 0;
+        return fast_recovery::label();
     }
-    return _s;
+    return "";
 }
-auto tcp_congestion_state::clone(const state* const _s)
--> state* {
-    const auto* const _p = dynamic_cast<const tcp_congestion_state* const>(_s);
-    assert(_p != nullptr);
-    if (this != _s && _p != nullptr) *this = *_p;
-    return this;
+auto tcp_congestion_state::assign(const state& _s) -> void {
+    const auto& _p = dynamic_cast<const tcp_congestion_state&>(_s);
+    *this = _p;
 }
 
 
-auto slow_start::handle(const fsm::event& _e) -> state* {
+auto slow_start::handle(const fsm::event& _e) -> std::string_view {
     printf("message from slow_start\n");
     _fault = true;
-    return nullptr;
+    return "";
 }
-auto slow_start::handle(const new_ack& _e) -> state* {
+auto slow_start::handle(const new_ack& _e) -> std::string_view {
     _dup_ack_count = 0; _cwnd += _MSS;
     printf("transmit new segment.\n");
-    return nullptr;
+    return "";
 }
-auto slow_start::handle(const duplicate_ack& _e) -> state* {
+auto slow_start::handle(const duplicate_ack& _e) -> std::string_view {
     ++_dup_ack_count;
-    return nullptr;
+    return "";
 }
-auto slow_start::transit(state* const _s) const -> state* {
+auto slow_start::transit(state* const _s) -> std::string_view {
     if (_cwnd >= _ssthresh) {
-        return fsm::state::instance<congestion_avoidance>()->clone(this);
+        return congestion_avoidance::label();
     }
     return tcp_congestion_state::transit(_s);
 }
@@ -65,19 +61,19 @@ auto slow_start::exit() -> void {
     printf("exit slow_start.\n");
 }
 
-auto congestion_avoidance::handle(const fsm::event& _e) -> state* {
+auto congestion_avoidance::handle(const fsm::event& _e) -> std::string_view {
     printf("message from congestion_avoidance\n");
-    return nullptr;
+    return "";
 }
-auto congestion_avoidance::handle(const new_ack& _e) -> state* {
+auto congestion_avoidance::handle(const new_ack& _e) -> std::string_view {
     _cwnd += _MSS / _cwnd;
     _dup_ack_count = 0;
     printf("transmit new segment.\n");
-    return nullptr;
+    return "";
 }
-auto congestion_avoidance::handle(const duplicate_ack& _e) -> state* {
+auto congestion_avoidance::handle(const duplicate_ack& _e) -> std::string_view {
     ++_dup_ack_count;
-    return nullptr;
+    return "";
 }
 auto congestion_avoidance::entry() -> void {
     printf("entry congestion_avoidance.\n");
@@ -88,19 +84,19 @@ auto congestion_avoidance::exit() -> void {
     printf("exit congestion_avoidance.\n");
 }
 
-auto fast_recovery::handle(const fsm::event& _e) -> state* {
+auto fast_recovery::handle(const fsm::event& _e) -> std::string_view {
     printf("message from fast_recovery\n");
-    return nullptr;
+    return "";
 }
-auto fast_recovery::handle(const new_ack& _e) -> state* {
+auto fast_recovery::handle(const new_ack& _e) -> std::string_view {
     _cwnd = _ssthresh;
     _dup_ack_count = 0;
-    return fsm::state::instance<congestion_avoidance>()->clone(this);
+    return congestion_avoidance::label();
 }
-auto fast_recovery::handle(const duplicate_ack& _e) -> state* {
+auto fast_recovery::handle(const duplicate_ack& _e) -> std::string_view {
     _cwnd += _MSS;
     printf("retransmit new segment.\n");
-    return nullptr;
+    return "";
 }
 auto fast_recovery::entry() -> void {
     printf("entry fast_recovery.\n");
