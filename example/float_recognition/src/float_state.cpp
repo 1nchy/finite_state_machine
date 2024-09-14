@@ -7,90 +7,89 @@ auto float_recognition_state::operator=(const float_recognition_state& _s)
     return *this;
 }
 
-auto float_recognition_state::handle(const fsm::event& _e) -> state* {
+auto float_recognition_state::handle(const fsm::event& _e) -> std::string_view {
     _end_of_float = true;
-    return nullptr;
+    return "";
 }
-auto float_recognition_state::handle(const digit& _e) -> state* {
+auto float_recognition_state::handle(const digit& _e) -> std::string_view {
     return handle(fsm::event(_e));
 }
-auto float_recognition_state::handle(const dot& _e) -> state* {
+auto float_recognition_state::handle(const dot& _e) -> std::string_view {
     return handle(fsm::event(_e));
 }
-auto float_recognition_state::handle(const alpha& _e) -> state* {
+auto float_recognition_state::handle(const alpha& _e) -> std::string_view {
     return handle(fsm::event(_e));
 }
-auto float_recognition_state::handle(const sign& _e) -> state* {
+auto float_recognition_state::handle(const sign& _e) -> std::string_view {
     return handle(fsm::event(_e));
 }
-auto float_recognition_state::transit(state* const _s) const -> state* {
-    if (_end_of_float) return nullptr;
-    return _s;
+auto float_recognition_state::transit(state* const _s) -> std::string_view {
+    if (_end_of_float) throw std::logic_error("");
+    return "";
 }
-auto float_recognition_state::clone(const state* const _s) -> state* {
-    const auto* const _p = dynamic_cast<const float_recognition_state* const>(_s);
-    assert(_p != nullptr);
-    if (this != _s && _p != nullptr) *this = *_p;
-    return this;
+auto float_recognition_state::assign(const state& _s) -> float_recognition_state& {
+    const auto& _p = dynamic_cast<const float_recognition_state&>(_s);
+    *this = _p;
+    return *this;
 }
 
-auto AB::handle(const digit& _e) -> state* {
+auto AB::handle(const digit& _e) -> std::string_view {
     ++_length;
-    return fsm::state::instance<BCFJ>()->clone(this);
+    return BCFJ::label();
 }
-auto AB::handle(const sign& _e) -> state* {
+auto AB::handle(const sign& _e) -> std::string_view {
     ++_length;
-    return fsm::state::instance<B>()->clone(this);
+    return B::label();
 }
-auto B::handle(const digit& _e) -> state* {
+auto B::handle(const digit& _e) -> std::string_view {
     ++_length;
-    return fsm::state::instance<BCFJ>()->clone(this);
+    return BCFJ::label();
 }
-auto BCFJ::handle(const digit& _e) -> state* {
+auto BCFJ::handle(const digit& _e) -> std::string_view {
     ++_length;
-    return fsm::state::instance<BCFJ>()->clone(this);
+    return BCFJ::label();
 }
-auto BCFJ::handle(const dot& _e) -> state* {
+auto BCFJ::handle(const dot& _e) -> std::string_view {
     ++_length;
-    return fsm::state::instance<D>()->clone(this);
+    return D::label();
 }
-auto BCFJ::handle(const alpha& _e) -> state* {
+auto BCFJ::handle(const alpha& _e) -> std::string_view {
     if (_e._c != 'e') {
         _end_of_float = true;
-        return nullptr;
+        throw std::logic_error("");
     }
     ++_length;
-    return fsm::state::instance<GH>()->clone(this);
+    return GH::label();
 }
-auto D::handle(const digit& _e) -> state* {
+auto D::handle(const digit& _e) -> std::string_view {
     ++_length;
-    return fsm::state::instance<DEFJ>()->clone(this);
+    return DEFJ::label();
 }
-auto DEFJ::handle(const digit& _e) -> state* {
+auto DEFJ::handle(const digit& _e) -> std::string_view {
     ++_length;
-    return fsm::state::instance<DEFJ>()->clone(this);
+    return DEFJ::label();
 }
-auto DEFJ::handle(const alpha& _e) -> state* {
+auto DEFJ::handle(const alpha& _e) -> std::string_view {
     if (_e._c != 'e') {
         _end_of_float = true;
-        return nullptr;
+        throw std::logic_error("");
     }
     ++_length;
-    return fsm::state::instance<GH>()->clone(this);
+    return GH::label();
 }
-auto GH::handle(const digit& _e) -> state* {
+auto GH::handle(const digit& _e) -> std::string_view {
     ++_length;
-    return fsm::state::instance<HIJ>()->clone(this);
+    return HIJ::label();
 }
-auto GH::handle(const sign& _e) -> state* {
+auto GH::handle(const sign& _e) -> std::string_view {
     ++_length;
-    return fsm::state::instance<H>()->clone(this);
+    return H::label();
 }
-auto H::handle(const digit& _e) -> state* {
+auto H::handle(const digit& _e) -> std::string_view {
     ++_length;
-    return fsm::state::instance<HIJ>()->clone(this);
+    return HIJ::label();
 }
-auto HIJ::handle(const digit& _e) -> state* {
+auto HIJ::handle(const digit& _e) -> std::string_view {
     ++_length;
-    return fsm::state::instance<HIJ>()->clone(this);
+    return HIJ::label();
 }

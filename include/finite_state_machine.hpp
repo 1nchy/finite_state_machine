@@ -7,7 +7,13 @@
 #include <cassert>
 #include <cstdio>
 
+#include <string>
+
 #include <unordered_set>
+#include <unordered_map>
+#include <memory>
+
+#include <source_location>
 
 namespace fsm {
 
@@ -34,47 +40,37 @@ public:
     ~state() = default;
     /**
      * @brief 事件处理（默认的事件处理函数是事实上的意外处理函数）
-     * @return @c nullptr 状态不改变（将状态转移任务转交给 @c transit 函数）
-     * @return @c this 重入当前状态
-     * @return pointer 希望变更到的状态
+     * @return @c "" 状态不改变（将状态转移任务转交给 @c transit 函数）
+     * @return string 希望变更到的状态的键（可能重入当前状态）
+     * @throw @c std::logic_error 状态变更错误
      */
-    virtual state* handle(const event&) = 0;
+    virtual std::string_view handle(const event&) = 0;
     /**
      * @brief 状态转移
      * @param _s 实际状态指针
-     * @return @c nullptr 自检错误
-     * @return @c  _s 重入当前状态
-     * @return pointer 希望变更到的状态
+     * @return @c "" 不变更状态
+     * @return string 希望变更到的状态的键（可能重入当前状态）
+     * @throw @c std::logic_error 状态变更错误
      */
-    virtual state* transit(state* const _s) const = 0;
+    virtual std::string_view transit(state* const _s) = 0;
     /**
-     * @brief 状态复制
+     * @brief 状态复制（协变特性）
      * @param _s 被复制的状态指针
      * @return 复制后自身状态指针 @c this
-     * @details 子类中实现时，应该使用 dynamic_cast 将参数转换为子类指针，再进行复制操作
+     * @details 子类中实现时，应该使用 dynamic_cast 将参数转换为子类对象，再进行赋值操作
      */
-    virtual state* clone(const state* const _s) = 0;
+    virtual state& assign(const state& _s) { return *this; }
     virtual void entry() = 0;
     virtual void exit() = 0;
-    /**
-     * @brief 向指定的有限状态机发送事件
-     * @tparam _Tp 有限状态类型（@c state 派生类）
-     * @tparam _Et 派生事件类型（@c event 派生类）
-     */
-    template <typename _Tp, typename _Et> requires std::is_base_of<state, _Tp>::value && std::is_base_of<event, _Et>::value
-    void dispatch(const _Et& _e) {
-        context<_Tp>::instance()->handle(_e);
-    }
-    /**
-     * @brief 状态单例
-     * @tparam _Tp 状态类型（@c state_type 有限状态类型的派生类）
-     */
-    template <typename _Tp> requires std::is_base_of<state, _Tp>::value
-    static _Tp* instance() {
-        static _Tp _s;
-        return &_s;
-    }
 };
+
+#define FSM_STATE_LABEL \
+static constexpr auto label() -> std::string_view { \
+    std::string_view _name = std::source_location::current().function_name(); \
+    size_t _first_colon = _name.rfind("::"); \
+    size_t _space_after = _name.rfind(" ", _first_colon) + 1; \
+    return _name.substr(_space_after, _first_colon - _space_after); \
+}
 
 /**
  * @brief 有限状态机
@@ -82,36 +78,41 @@ public:
  */
 template <typename _Tp> requires std::is_base_of<state, _Tp>::value class context {
     typedef context<_Tp> self;
-    context() = default;
 public:
     // derived from fsm::state
     typedef _Tp state_type;
+    context() = default;
     context(const self&) = delete;
     self& operator=(const self&) = delete;
     ~context() = default;
-    static self* instance() {
-        static self _s;
-        return &_s;
+public:
+    /**
+     * @brief 状态注册
+     * @tparam _St 状态类型
+     */
+    template <typename _St> requires std::is_base_of<state_type, _St>::value
+    void enroll() {
+        _states.emplace(_St::label(), std::make_shared<_St>());
     }
     /**
      * @brief 事件处理
      * @tparam _Et 派生事件类型
+     * @return false 状态机出错
      */
     template <typename _Et> requires std::is_base_of<event, _Et>::value
     bool handle(const _Et& _e) {
-        auto* _result = _state->handle(_e);
-        if (_result == nullptr) {
-            _result = _state->transit(_state);
-            if (_result == nullptr) {
-                return false;
+        try {
+            std::string_view _ns = _M_state()->handle(_e);
+            if (_ns.empty()) {
+                _ns = _M_state()->transit(_M_state());
+                if (_ns.empty()) return true;
             }
+            _M_transit(_ns);
+            return true;
         }
-        auto* const _new_state = dynamic_cast<state_type*>(_result);
-        assert(_new_state != nullptr);
-        _state->exit();
-        _new_state->entry();
-        _state = _new_state;
-        return true;
+        catch (const std::logic_error&) {
+            return false;
+        }
     }
     /**
      * @brief 状态初始化
@@ -119,8 +120,7 @@ public:
      */
     template <typename _St> requires std::is_base_of<state_type, _St>::value
     void start() {
-        assert(this->_state == nullptr);
-        transit<_St>();
+        _M_transit(_St::label());
     }
     /**
      * @brief 可接受的结束状态
@@ -128,7 +128,7 @@ public:
      */
     template <typename _St> requires std::is_base_of<state_type, _St>::value
     void accept() {
-        this->_acceptable_states.insert(state::instance<_St>());
+        this->_acceptable_states.emplace(_St::label());
     }
     /**
      * @brief 不可接受的结束状态
@@ -137,15 +137,15 @@ public:
      */
     template <typename _St> requires std::is_base_of<state_type, _St>::value
     void reject() {
-        this->_acceptable_states.erase(state::instance<_St>());
+        this->_acceptable_states.erase(_St::label());
     }
     /**
      * @brief 关闭状态机
      */
     void stop() {
-        assert(this->_state != nullptr);
-        this->_state->exit();
-        this->_state = nullptr;
+        if (_state.empty()) return;
+        _M_state()->exit();
+        _state = "";
     }
     /**
      * @brief 当前状态是否可接受
@@ -156,25 +156,34 @@ public:
     /**
      * @brief 返回当前状态
      */
-    const state_type* state() const {
-        return _state;
-    }
+    inline const state_type* state(std::string_view _s = "") const { return _M_state(_s); }
 private:
+    const state_type* _M_state(std::string_view _s = "") const {
+        const std::string_view _k = (_s.empty() ? _state : _s);
+        if (_states.contains(_k)) return _states.at(_k).get();
+        else return nullptr;
+    }
+    state_type* _M_state(std::string_view _s = "") {
+        const std::string_view _k = (_s.empty() ? _state : _s);
+        if (_states.contains(_k)) return _states.at(_k).get();
+        else return nullptr;
+    }
     /**
      * @brief 状态切换
-     * @tparam _St 状态类型
+     * @param _s 状态键
      */
-    template <typename _St> requires std::is_base_of<state_type, _St>::value
-    void transit() {
-        if (this->_state != nullptr) {
-            this->_state->exit();
+    void _M_transit(const std::string_view _s) {
+        if (!_state.empty()) {
+            _M_state()->exit();
+            _M_state(_s)->assign(*_M_state());
         }
-        this->_state = state::instance<_St>();
-        this->_state->entry();
+        _state = _s;
+        _M_state()->entry();
     }
 private:
-    state_type* _state = nullptr;
-    std::unordered_set<state_type*> _acceptable_states;
+    std::string_view _state = "";
+    std::unordered_set<std::string_view> _acceptable_states;
+    std::unordered_map<std::string_view, std::shared_ptr<state_type>> _states;
 };
 
 };
