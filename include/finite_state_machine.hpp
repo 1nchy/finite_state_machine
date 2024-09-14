@@ -39,27 +39,26 @@ public:
     state& operator=(const state&) = default;
     ~state() = default;
     /**
-     * @brief 事件处理（默认的事件处理函数是事实上的意外处理函数）
+     * @brief 事件处理
      * @return @c "" 状态不改变（将状态转移任务转交给 @c transit 函数）
-     * @return string 希望变更到的状态的键（可能重入当前状态）
+     * @return string_view 希望变更到的状态的键（可能重入当前状态）
      * @throw @c std::logic_error 状态变更错误
      */
     virtual std::string_view handle(const event&) = 0;
     /**
      * @brief 状态转移
      * @param _s 实际状态指针
-     * @return @c "" 不变更状态
-     * @return string 希望变更到的状态的键（可能重入当前状态）
+     * @return @c "" 不变更状态（重入当前状态）
+     * @return string_view 希望变更到的状态的键（可能重入当前状态）
      * @throw @c std::logic_error 状态变更错误
      */
     virtual std::string_view transit(state* const _s) = 0;
     /**
      * @brief 状态复制（协变特性）
-     * @param _s 被复制的状态指针
-     * @return 复制后自身状态指针 @c this
+     * @param _s 被复制的状态对象
      * @details 子类中实现时，应该使用 dynamic_cast 将参数转换为子类对象，再进行赋值操作
      */
-    virtual state& assign(const state& _s) { return *this; }
+    virtual void assign(const state& _s) {}
     virtual void entry() = 0;
     virtual void exit() = 0;
 };

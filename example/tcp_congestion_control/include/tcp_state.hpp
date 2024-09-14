@@ -15,7 +15,7 @@ struct tcp_congestion_state : public fsm::state {
     virtual std::string_view handle(const duplicate_ack&) = 0;
     virtual std::string_view handle(const timeout&);
     std::string_view transit(state* const) override;
-    tcp_congestion_state& assign(const state&) override;
+    void assign(const state&) override;
     void entry() override {}
     void exit() override {}
     const size_t _MSS = 1460;

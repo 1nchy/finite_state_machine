@@ -27,10 +27,9 @@ auto float_recognition_state::transit(state* const _s) -> std::string_view {
     if (_end_of_float) throw std::logic_error("");
     return "";
 }
-auto float_recognition_state::assign(const state& _s) -> float_recognition_state& {
+auto float_recognition_state::assign(const state& _s) -> void {
     const auto& _p = dynamic_cast<const float_recognition_state&>(_s);
     *this = _p;
-    return *this;
 }
 
 auto AB::handle(const digit& _e) -> std::string_view {

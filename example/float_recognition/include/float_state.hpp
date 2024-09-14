@@ -13,7 +13,7 @@ struct float_recognition_state : public fsm::state {
     virtual std::string_view handle(const alpha&);
     virtual std::string_view handle(const sign&);
     std::string_view transit(state* const) override;
-    float_recognition_state& assign(const state&) override;
+    void assign(const state&) override;
     void entry() override {}
     void exit() override {}
     size_t length() const { return _length; }
