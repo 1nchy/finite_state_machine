@@ -28,8 +28,7 @@ auto float_recognition_state::transit(state* const _s) -> std::string_view {
     return "";
 }
 auto float_recognition_state::assign(const state& _s) -> void {
-    const auto& _p = dynamic_cast<const float_recognition_state&>(_s);
-    *this = _p;
+    this->operator=(dynamic_cast<const float_recognition_state&>(_s));
 }
 
 auto AB::handle(const digit& _e) -> std::string_view {

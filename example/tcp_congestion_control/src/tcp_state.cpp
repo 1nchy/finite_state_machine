@@ -27,8 +27,7 @@ auto tcp_congestion_state::transit(state* const _s) -> std::string_view {
     return "";
 }
 auto tcp_congestion_state::assign(const state& _s) -> void {
-    const auto& _p = dynamic_cast<const tcp_congestion_state&>(_s);
-    *this = _p;
+    this->operator=(dynamic_cast<const tcp_congestion_state&>(_s));
 }
 
 
