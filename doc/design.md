@@ -31,12 +31,23 @@ public:
 但状态自身不应该主动调用有限状态机中的状态切换函数，
 因此转移状态应该以返回值的形式传递给有限状态机。
 
-由此可得出一个阶段性结论，各状态应该以单例模式出现，`state` 中应定义 `instance` 方法以访问各状态单例。
+倘若不使用单例设计模式的话，那么，各状态类应该有一个可以用于唯一标识的枚举/静态方法，因此我们给出了 `FSM_STATE_LABEL` 宏，为各状态类型提供了静态的 `label` 方法。
+唯一标识的类型为 `std::string_view`
+
+~~~cpp
+#define FSM_STATE_LABEL \
+static constexpr auto label() -> std::string_view { \
+    std::string_view _name = std::source_location::current().function_name(); \
+    size_t _first_colon = _name.rfind("::"); \
+    size_t _space_after = _name.rfind(" ", _first_colon) + 1; \
+    return _name.substr(_space_after, _first_colon - _space_after); \
+}
+~~~
 
 我们把事件处理函数定义为
 
 ~~~cpp
-virtual state* handle(const event&) = 0;
+virtual std::string_view handle(const event&) = 0;
 ~~~
 
 但这种定义无法满足我们分离各事件处理函数的需要——所有处理过程都将在该函数中，各状态将根据 `event` 的某虚函数方法区分各事件。
@@ -48,23 +59,31 @@ virtual state* handle(const event&) = 0;
 class state {
     // omitted
 public:
-    virtual state* handle(const event&) = 0;
+    virtual std::string_view handle(const event&) = 0;
     virtual void entry() = 0;
     virtual void exit() = 0;
-    template <typename _Tp>
-        requires std::is_base_of<state, _Tp>::value
-        static _Tp* instance();
+    virtual void assign(const state& _s) {}
 };
 class derived_state : public state {
-    virtual state* handle(const derived_event1&) = 0;
-    virtual state* handle(const derived_event2&) = 0;
+    derived_state& operator=(const derived_state&);
+    virtual std::string_view handle(const derived_event1&) = 0;
+    virtual std::string_view handle(const derived_event2&) = 0;
+    virtual void assign(const state& _s) override { // optional
+        this->operator=(std::dynamic_cast<const derived_state&>(_s));
+    }
 };
-class state1 : public derived_state {};
-class state2 : public derived_state {};
+class state1 : public derived_state {
+    FSM_STATE_LABEL
+};
+class state2 : public derived_state {
+    FSM_STATE_LABEL
+};
 ~~~
 
 `handle` 方法主要负责事件处理，至于状态转移，可以将部分工作移交给 `transit` 方法。
-关于这部分的讨论，见 [状态的条件转移](#状态的条件转移) 章节
+关于这部分的讨论，见 [状态的条件转移](#状态的条件转移) 章节。
+
+`assign` 方法用于状态间某些必要数据的赋值，该方法的重写不是必要的。
 
 ## 有限状态机定义
 
@@ -72,15 +91,14 @@ class state2 : public derived_state {};
 
 ~~~cpp
 class context {
-    context() = default;
 public:
+    context() = default;
     context(const context&) = delete;
     context& operator=(const context&) = delete;
     ~context() = default;
-    static context* instance();
     void handle(const event& _e);
 private:
-    typename state* _state = nullptr; // 指向当前状态的单例
+    std::string_view _state = ""; // 当前状态的键
 };
 ~~~
 
@@ -103,19 +121,18 @@ private:
 ~~~cpp
 template <typename _Tp> requires std::is_base_of<state, _Tp>::value class context {
     typedef context<_Tp> self;
-    context() = default;
 public:
     // derived from fsm::state
     typedef _Tp state_type;
+    context() = default;
     context(const self&) = delete;
     self& operator=(const self&) = delete;
     ~context() = default;
-    static self* instance();
     template <typename _Et>
         requires std::is_base_of<event, _Et>::value
         void handle(const _Et&);
 private:
-    state_type* _state = nullptr;
+    std::string_view _state = ""; // 当前状态的键
 };
 ~~~
 
@@ -137,21 +154,22 @@ private:
 ~~~cpp
 class state {
 public:
-    virtual state* handle(const event&) = 0;
-    virtual state* transit(state* const) const = 0;
+    virtual std::string_view handle(const event&) = 0;
+    virtual std::string_view transit(state* const) const = 0;
 };
 ~~~
 
-我们这里先讨论一下 `state::handle` 的返回值，包括 `nullptr` 和非空指针。
-非空指针较易理解，即 `handle` 显式的指定转移状态。
-若返回 `nullptr`，则表示将状态转移交给 `transit` 方法决定。
+我们这里先讨论一下 `state::handle` 的返回值，包括空字符串和非空字符串。
+非空字符串较易理解，即 `handle` 显式的指定转移状态。
+若返回空字符串，则表示将状态转移交给 `transit` 方法决定。
 
-其次是 `state::transit` 的返回值，和上面一样，包括 `nullptr` 和非空指针。
-非空指针是显式指定的转移状态。
-若返回 `nullptr`，则理解为状态机走到了终点，可能是正常结束、也可能是出错。
-具体细节需要进一步判断。
+其次是 `state::transit` 的返回值，和上面一样，包括空字符串和非空字符串。
+非空字符串是显式指定的转移状态。
+若返回空字符串，则理解为重入当前状态。
 
 对于 `transit` 方法而言，我们需要传入当前状态指针——否则我们在父类的 transit 函数中，无法返回当前状态。
+
+对于错误的输入事件来说，上面两个函数可以用异常处理的方式实现。
 
 同时，context 类中也得对事件处理函数的定义与实现做出修改：
 
@@ -159,25 +177,24 @@ public:
 template <typename _Tp> template <typename _Et>
 requires std::is_base_of<event, _Et>::value
 auto context<_Tp>::handle(const _Et& _e) -> bool {
-    auto* _result = _state->handle(_e);
-    if (_result == nullptr) {
-        _result = _state->transit(_state);
-        if (_result == nullptr) {
-            return false;
+    try {
+        std::string_view _ns = _M_state()->handle(_e);
+        if (_ns.empty()) {
+            _ns = _M_state()->transit(_M_state());
+            // if (_ns.empty()) return true;
         }
+        _M_transit(_ns);
+        return true;
     }
-    auto* const _new_state = dynamic_cast<state_type*>(_result);
-    assert(_new_state != nullptr);
-    _state->exit();
-    _new_state->entry();
-    _state = _new_state;
-    return true;
+    catch (const std::exception&) {
+        return false;
+    }
 }
 ~~~
 
 ## 状态机退出
 
-[前面](#状态的条件转移)提到，当 `state::transit` 函数返回 `nullptr` 时，表示状态机走到了终点。
+[前面](#状态的条件转移)提到，当 `state::transit` 函数抛出异常时，表示状态机走到了终点。
 从实践角度来说，原因可能是：转移到了无出度的（结束或错误）状态、接收了无法处理的事件。
 具体情况依赖于 `state::handle` 及 `state::transit` 函数的实现。
 但无论哪种情况，我们都需要对当前状态进行可收受检测，检测当前状态是否是可接受的结束状态。
@@ -198,7 +215,7 @@ public:
     bool acceptable() const;
     const state_type* state() const;
 private:
-    std::unordered_set<state_type*> _acceptable_states;
+    std::unordered_set<std::string_view> _acceptable_states;
 };
 ~~~
 
