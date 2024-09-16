@@ -26,33 +26,43 @@ template <typename _Tp> requires std::is_base_of<state, _Tp>::value class contex
  */
 struct event {};
 
+#define FSM_STATE_LABEL \
+static constexpr auto label() -> std::string_view { \
+    std::string_view _name = std::source_location::current().function_name(); \
+    size_t _first_colon = _name.rfind("::"); \
+    size_t _space_after = _name.rfind(" ", _first_colon) + 1; \
+    return _name.substr(_space_after, _first_colon - _space_after); \
+}
+
 /**
  * @brief 有限状态机的状态基类
  * 
  * 基于此类派生有限状态类型 @c state_type ，其中定义用于处理所有类型事件的纯虚函数
  */
 class state {
+    FSM_STATE_LABEL
 protected:
     state() = default;
 public:
     state(const state&) = delete;
     state& operator=(const state&) = default;
     ~state() = default;
+    using label_type = std::invoke_result<decltype(&state::label)>::type;
     /**
      * @brief 事件处理
      * @return @c "" 状态不改变（将状态转移任务转交给 @c transit 函数）
-     * @return string_view 希望变更到的状态的键（可能重入当前状态）
+     * @return label_type 希望变更到的状态的键（可能重入当前状态）
      * @throw @c std::logic_error 状态变更错误
      */
-    virtual std::string_view handle(const event&) = 0;
+    virtual label_type handle(const event&) = 0;
     /**
      * @brief 状态转移
      * @param _s 实际状态指针
      * @return @c "" 不变更状态（重入当前状态）
-     * @return string_view 希望变更到的状态的键（可能重入当前状态）
+     * @return label_type 希望变更到的状态的键（可能重入当前状态）
      * @throw @c std::logic_error 状态变更错误
      */
-    virtual std::string_view transit(state* const _s) = 0;
+    virtual label_type transit(state* const _s) = 0;
     /**
      * @brief 状态复制（协变特性）
      * @param _s 被复制的状态对象
@@ -63,20 +73,13 @@ public:
     virtual void exit() = 0;
 };
 
-#define FSM_STATE_LABEL \
-static constexpr auto label() -> std::string_view { \
-    std::string_view _name = std::source_location::current().function_name(); \
-    size_t _first_colon = _name.rfind("::"); \
-    size_t _space_after = _name.rfind(" ", _first_colon) + 1; \
-    return _name.substr(_space_after, _first_colon - _space_after); \
-}
-
 /**
  * @brief 有限状态机
  * @tparam _Tp 有限状态类型
  */
 template <typename _Tp> requires std::is_base_of<state, _Tp>::value class context {
     typedef context<_Tp> self;
+    // using label_type = state::label_type;
 public:
     // derived from fsm::state
     typedef _Tp state_type;
@@ -101,7 +104,7 @@ public:
     template <typename _Et> requires std::is_base_of<event, _Et>::value
     bool handle(const _Et& _e) {
         try {
-            std::string_view _ns = _M_state()->handle(_e);
+            state::label_type _ns = _M_state()->handle(_e);
             if (_ns.empty()) {
                 _ns = _M_state()->transit(_M_state());
                 // if (_ns.empty()) return true;
@@ -144,7 +147,7 @@ public:
     void stop() {
         if (_state.empty()) return;
         _M_state()->exit();
-        _state = "";
+        _state = {};
     }
     /**
      * @brief 当前状态是否可接受
@@ -155,23 +158,25 @@ public:
     /**
      * @brief 返回当前状态
      */
-    inline const state_type* state(std::string_view _s = "") const { return _M_state(_s); }
+    inline const state_type* state() const { return _M_state(_state); }
 private:
-    const state_type* _M_state(std::string_view _s = "") const {
-        const std::string_view _k = (_s.empty() ? _state : _s);
-        if (_states.contains(_k)) return _states.at(_k).get();
-        else return nullptr;
+    const state_type* _M_state(state::label_type _s) const {
+        return (_states.contains(_s) ? _states.at(_s).get() : nullptr);
     }
-    state_type* _M_state(std::string_view _s = "") {
-        const std::string_view _k = (_s.empty() ? _state : _s);
-        if (_states.contains(_k)) return _states.at(_k).get();
-        else return nullptr;
+    state_type* _M_state(state::label_type _s) {
+        return (_states.contains(_s) ? _states.at(_s).get() : nullptr);
+    }
+    const state_type* _M_state() const {
+        return (_states.contains(_state) ? _states.at(_state).get() : nullptr);
+    }
+    state_type* _M_state() {
+        return (_states.contains(_state) ? _states.at(_state).get() : nullptr);
     }
     /**
      * @brief 状态切换
      * @param _s 状态键
      */
-    void _M_transit(const std::string_view _s) {
+    void _M_transit(const state::label_type _s) {
         if (!_state.empty()) {
             _M_state()->exit();
         }
@@ -184,9 +189,9 @@ private:
         _M_state()->entry();
     }
 private:
-    std::string_view _state = "";
-    std::unordered_set<std::string_view> _acceptable_states;
-    std::unordered_map<std::string_view, std::shared_ptr<state_type>> _states;
+    state::label_type _state = {};
+    std::unordered_set<state::label_type> _acceptable_states;
+    std::unordered_map<state::label_type, std::shared_ptr<state_type>> _states;
 };
 
 };

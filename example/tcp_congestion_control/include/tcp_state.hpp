@@ -10,11 +10,11 @@
 struct tcp_congestion_state : public fsm::state {
     using state = fsm::state;
     tcp_congestion_state& operator=(const tcp_congestion_state&);
-    virtual std::string_view handle(const fsm::event&) override = 0;
-    virtual std::string_view handle(const new_ack&) = 0;
-    virtual std::string_view handle(const duplicate_ack&) = 0;
-    virtual std::string_view handle(const timeout&);
-    std::string_view transit(state* const) override;
+    virtual label_type handle(const fsm::event&) override = 0;
+    virtual label_type handle(const new_ack&) = 0;
+    virtual label_type handle(const duplicate_ack&) = 0;
+    virtual label_type handle(const timeout&);
+    label_type transit(state* const) override;
     void assign(const state&) override;
     void entry() override {}
     void exit() override {}
@@ -36,28 +36,28 @@ struct fast_recovery;
 struct slow_start : public tcp_congestion_state {
     FSM_STATE_LABEL
     using state = fsm::state;
-    std::string_view handle(const fsm::event& _e) override;
-    std::string_view handle(const new_ack& _e) override;
-    std::string_view handle(const duplicate_ack& _e) override;
-    std::string_view transit(state* const) override;
+    label_type handle(const fsm::event& _e) override;
+    label_type handle(const new_ack& _e) override;
+    label_type handle(const duplicate_ack& _e) override;
+    label_type transit(state* const) override;
     void entry() override;
     void exit() override;
 };
 struct congestion_avoidance : public tcp_congestion_state {
     FSM_STATE_LABEL
     using state = fsm::state;
-    std::string_view handle(const fsm::event& _e) override;
-    std::string_view handle(const new_ack& _e) override;
-    std::string_view handle(const duplicate_ack& _e) override;
+    label_type handle(const fsm::event& _e) override;
+    label_type handle(const new_ack& _e) override;
+    label_type handle(const duplicate_ack& _e) override;
     void entry() override;
     void exit() override;
 };
 struct fast_recovery : public tcp_congestion_state {
     FSM_STATE_LABEL
     using state = fsm::state;
-    std::string_view handle(const fsm::event& _e) override;
-    std::string_view handle(const new_ack& _e) override;
-    std::string_view handle(const duplicate_ack& _e) override;
+    label_type handle(const fsm::event& _e) override;
+    label_type handle(const new_ack& _e) override;
+    label_type handle(const duplicate_ack& _e) override;
     void entry() override;
     void exit() override;
 };
