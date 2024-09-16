@@ -16,7 +16,7 @@ auto tcp_congestion_state::handle(const timeout& _e) -> label_type {
     return slow_start::label();
 }
 auto tcp_congestion_state::transit(state* const _s) -> label_type {
-    if (_fault) throw std::logic_error("internal error in fsm");
+    if (_fault) throw fsm::state_error();
     if (_dup_ack_count >= 3) {
         const auto _old_ssthresh = _ssthresh;
         _ssthresh = _cwnd / 2;

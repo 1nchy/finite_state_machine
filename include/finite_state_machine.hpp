@@ -35,6 +35,23 @@ static constexpr auto label() -> std::string_view { \
 }
 
 /**
+ * @brief thrown by state::handle and state::transit, to report internal error in fsm
+ */
+class state_error : public std::logic_error {
+    using base = std::logic_error;
+    using self = state_error;
+public:
+    explicit state_error() : base("") {}
+    explicit state_error(const std::string& _arg) : base(_arg) {}
+    explicit state_error(const char* _arg) : base(_arg) {}
+    state_error(const self&) = default;
+    self& operator=(const self&) = default;
+    state_error(self&&) = default;
+    self& operator=(self&&) = default;
+    virtual ~state_error() override = default;
+};
+
+/**
  * @brief 有限状态机的状态基类
  * 
  * 基于此类派生有限状态类型 @c state_type ，其中定义用于处理所有类型事件的纯虚函数
@@ -52,7 +69,7 @@ public:
      * @brief 事件处理
      * @return @c "" 状态不改变（将状态转移任务转交给 @c transit 函数）
      * @return label_type 希望变更到的状态的键（可能重入当前状态）
-     * @throw @c std::logic_error 状态变更错误
+     * @throw @c fsm::state_error 状态变更错误
      */
     virtual label_type handle(const event&) = 0;
     /**
@@ -60,7 +77,7 @@ public:
      * @param _s 实际状态指针
      * @return @c "" 不变更状态（重入当前状态）
      * @return label_type 希望变更到的状态的键（可能重入当前状态）
-     * @throw @c std::logic_error 状态变更错误
+     * @throw @c fsm::state_error 状态变更错误
      */
     virtual label_type transit(state* const _s) = 0;
     /**
@@ -112,7 +129,7 @@ public:
             _M_transit(_ns);
             return true;
         }
-        catch (const std::logic_error&) {
+        catch (const fsm::state_error&) {
             return false;
         }
     }

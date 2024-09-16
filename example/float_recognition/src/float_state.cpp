@@ -24,7 +24,7 @@ auto float_recognition_state::handle(const sign& _e) -> label_type {
     return handle(fsm::event(_e));
 }
 auto float_recognition_state::transit(state* const _s) -> label_type {
-    if (_end_of_float) throw std::logic_error("");
+    if (_end_of_float) throw fsm::state_error();
     return {};
 }
 auto float_recognition_state::assign(const state& _s) -> void {
@@ -54,7 +54,7 @@ auto BCFJ::handle(const dot& _e) -> label_type {
 auto BCFJ::handle(const alpha& _e) -> label_type {
     if (_e._c != 'e') {
         _end_of_float = true;
-        throw std::logic_error("");
+        throw fsm::state_error();
     }
     ++_length;
     return GH::label();
@@ -70,7 +70,7 @@ auto DEFJ::handle(const digit& _e) -> label_type {
 auto DEFJ::handle(const alpha& _e) -> label_type {
     if (_e._c != 'e') {
         _end_of_float = true;
-        throw std::logic_error("");
+        throw fsm::state_error();
     }
     ++_length;
     return GH::label();
