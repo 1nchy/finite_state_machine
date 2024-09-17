@@ -142,6 +142,28 @@ public:
         _M_transit(_St::label());
     }
     /**
+     * @brief 状态初始化
+     */
+    void start() {
+        _M_transit(_default_entry_state);
+    }
+    /**
+     * @brief 状态重置
+     * @tparam _St 状态类型
+     */
+    template <typename _St> requires std::is_base_of<state_type, _St>::value
+    void restart() {
+        stop();
+        start<_St>();
+    }
+    /**
+     * @brief 状态重置
+     */
+    void restart() {
+        stop();
+        start();
+    }
+    /**
      * @brief 可接受的结束状态
      * @tparam _St 状态类型
      */
@@ -157,6 +179,14 @@ public:
     template <typename _St> requires std::is_base_of<state_type, _St>::value
     void reject() {
         this->_acceptable_states.erase(_St::label());
+    }
+    /**
+     * @brief 默认初始状态
+     * @tparam _St 状态类型
+     */
+    template <typename _St> requires std::is_base_of<state_type, _St>::value
+    void default_entry() {
+        this->_default_entry_state = _St::label();
     }
     /**
      * @brief 关闭状态机
@@ -207,6 +237,7 @@ private:
     }
 private:
     state::label_type _state = {};
+    state::label_type _default_entry_state = {};
     std::unordered_set<state::label_type> _acceptable_states;
     std::unordered_map<state::label_type, std::shared_ptr<state_type>> _states;
 };
