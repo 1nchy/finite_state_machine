@@ -67,27 +67,28 @@ public:
     using label_type = std::invoke_result<decltype(&state::label)>::type;
     /**
      * @brief 事件处理
-     * @return @c "" 状态不改变（将状态转移任务转交给 @c transit 函数）
-     * @return label_type 希望变更到的状态的键（可能重入当前状态）
+     * @return label_type 希望变更到的状态的键；若为默认值，则将状态转移任务转交给 @c transit 函数
      * @throw @c fsm::state_error 状态变更错误
      */
     virtual label_type handle(const event&) = 0;
     /**
      * @brief 状态转移
-     * @param _s 实际状态指针
-     * @return @c "" 不变更状态（重入当前状态）
-     * @return label_type 希望变更到的状态的键（可能重入当前状态）
+     * @param _s 当前状态指针
+     * @return label_type 希望变更到的状态的键；若为默认值，则重入当前状态
      * @throw @c fsm::state_error 状态变更错误
      */
     virtual label_type transit(state* const _s) = 0;
     /**
-     * @brief 状态复制（协变特性）
+     * @brief 状态复制
      * @param _s 被复制的状态对象
      * @details 子类中实现时，应该使用 dynamic_cast 将参数转换为子类对象，再进行赋值操作
      */
     virtual void assign(const state& _s) {}
-    virtual void entry() = 0;
-    virtual void exit() = 0;
+    virtual void entry() {}
+    virtual void exit() {}
+private:
+    static bool empty_label(label_type _l) { return _l.empty(); }
+    template <typename _Tp> requires std::is_base_of<state, _Tp>::value friend class context;
 };
 
 /**
@@ -122,9 +123,8 @@ public:
     bool handle(const _Et& _e) {
         try {
             state::label_type _ns = _M_state()->handle(_e);
-            if (_ns.empty()) {
+            if (state::empty_label(_ns)) {
                 _ns = _M_state()->transit(_M_state());
-                // if (_ns.empty()) return true;
             }
             _M_transit(_ns);
             return true;
@@ -192,7 +192,7 @@ public:
      * @brief 关闭状态机
      */
     void stop() {
-        if (_state.empty()) return;
+        if (state::empty_label(_state)) return;
         _M_state()->exit();
         _state = {};
     }
@@ -224,13 +224,13 @@ private:
      * @param _s 状态键
      */
     void _M_transit(const state::label_type _s) {
-        if (!_state.empty()) {
+        if (!state::empty_label(_state)) {
             _M_state()->exit();
         }
-        if (!_state.empty() && !_s.empty()) {
+        if (!state::empty_label(_state) && !state::empty_label(_s)) {
             _M_state(_s)->assign(*_M_state());
         }
-        if (!_s.empty()) {
+        if (!state::empty_label(_s)) {
             _state = _s;
         }
         _M_state()->entry();
