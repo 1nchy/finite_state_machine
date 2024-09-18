@@ -19,7 +19,14 @@ namespace fsm {
 
 struct event;
 class state;
-template <typename _Tp> requires std::is_base_of<state, _Tp>::value class context;
+
+namespace {
+
+template <typename _Bt> concept basic_state = std::derived_from<_Bt, state>;
+
+}
+
+template <basic_state _Bs> class context;
 
 /**
  * @brief 有限状态机的事件基类
@@ -88,19 +95,28 @@ public:
     virtual void exit() {}
 private:
     static bool empty_label(label_type _l) { return _l.empty(); }
-    template <typename _Tp> requires std::is_base_of<state, _Tp>::value friend class context;
+    template <basic_state _Bs> friend class context;
 };
+
+namespace {
+
+template <typename _Bt, typename _St> concept label_state = 
+basic_state<_Bt> &&
+std::derived_from<_St, _Bt> && // std::is_base_of<_Bt, _St>::value
+requires { {_St::label()} -> std::same_as<state::label_type>; };
+
+}
 
 /**
  * @brief 有限状态机
- * @tparam _Tp 有限状态类型
+ * @tparam _Bs 有限状态类型
  */
-template <typename _Tp> requires std::is_base_of<state, _Tp>::value class context {
-    typedef context<_Tp> self;
+template <basic_state _Bs> class context {
+    typedef context<_Bs> self;
     // using label_type = state::label_type;
 public:
     // derived from fsm::state
-    typedef _Tp state_type;
+    typedef _Bs state_type;
     context() = default;
     context(const self&) = delete;
     self& operator=(const self&) = delete;
@@ -110,7 +126,7 @@ public:
      * @brief 状态注册
      * @tparam _St 状态类型
      */
-    template <typename _St> requires std::is_base_of<state_type, _St>::value
+    template <typename _St> requires label_state<_Bs, _St>
     void enroll() {
         _states.emplace(_St::label(), std::make_shared<_St>());
     }
@@ -119,7 +135,7 @@ public:
      * @tparam _Et 派生事件类型
      * @return false 状态机出错
      */
-    template <typename _Et> requires std::is_base_of<event, _Et>::value
+    template <typename _Et> requires std::derived_from<_Et, event>
     bool handle(const _Et& _e) {
         try {
             state::label_type _ns = _M_state()->handle(_e);
@@ -137,7 +153,7 @@ public:
      * @brief 状态初始化
      * @tparam _St 状态类型
      */
-    template <typename _St> requires std::is_base_of<state_type, _St>::value
+    template <typename _St> requires label_state<_Bs, _St>
     void start() {
         _M_transit(_St::label());
     }
@@ -151,7 +167,7 @@ public:
      * @brief 状态重置
      * @tparam _St 状态类型
      */
-    template <typename _St> requires std::is_base_of<state_type, _St>::value
+    template <typename _St> requires label_state<_Bs, _St>
     void restart() {
         stop();
         start<_St>();
@@ -167,7 +183,7 @@ public:
      * @brief 可接受的结束状态
      * @tparam _St 状态类型
      */
-    template <typename _St> requires std::is_base_of<state_type, _St>::value
+    template <typename _St> requires label_state<_Bs, _St>
     void accept() {
         this->_acceptable_states.emplace(_St::label());
     }
@@ -176,7 +192,7 @@ public:
      * @details 若可接受列表非空，则所有状态均默认为不可接受的结束状态
      * @tparam _St 状态类型
      */
-    template <typename _St> requires std::is_base_of<state_type, _St>::value
+    template <typename _St> requires label_state<_Bs, _St>
     void reject() {
         this->_acceptable_states.erase(_St::label());
     }
@@ -184,7 +200,7 @@ public:
      * @brief 默认初始状态
      * @tparam _St 状态类型
      */
-    template <typename _St> requires std::is_base_of<state_type, _St>::value
+    template <typename _St> requires label_state<_Bs, _St>
     void default_entry() {
         this->_default_entry_state = _St::label();
     }
