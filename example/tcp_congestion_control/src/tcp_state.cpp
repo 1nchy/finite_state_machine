@@ -15,8 +15,8 @@ auto tcp_congestion_state::handle(const timeout& _e) -> label_type {
     printf("retransmit new segment.\n");
     return slow_start::label();
 }
-auto tcp_congestion_state::transit(state* const _s) -> label_type {
-    if (_fault) throw fsm::state_error();
+auto tcp_congestion_state::transit() -> label_type {
+    if (_fault) return state::label();
     if (_dup_ack_count >= 3) {
         const auto _old_ssthresh = _ssthresh;
         _ssthresh = _cwnd / 2;
@@ -45,11 +45,11 @@ auto slow_start::handle(const duplicate_ack& _e) -> label_type {
     ++_dup_ack_count;
     return {};
 }
-auto slow_start::transit(state* const _s) -> label_type {
+auto slow_start::transit() -> label_type {
     if (_cwnd >= _ssthresh) {
         return congestion_avoidance::label();
     }
-    return tcp_congestion_state::transit(_s);
+    return tcp_congestion_state::transit();
 }
 auto slow_start::entry() -> void {
     printf("entry slow_start.\n");

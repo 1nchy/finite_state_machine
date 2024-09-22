@@ -12,7 +12,7 @@ struct float_recognition_state : public fsm::state {
     virtual label_type handle(const dot&);
     virtual label_type handle(const alpha&);
     virtual label_type handle(const sign&);
-    label_type transit(state* const) override;
+    label_type transit() override;
     void assign(const state&) override;
     void entry() override {}
     void exit() override {}

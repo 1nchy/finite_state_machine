@@ -61,30 +61,31 @@ public:
 /**
  * @brief 有限状态机的状态基类
  * 
- * 基于此类派生有限状态类型 @c state_type ，其中定义用于处理所有类型事件的纯虚函数
+ * @note 基于此类派生有限状态类型 @c state_type ，其中定义用于处理所有类型事件的纯虚函数
  */
 class state {
-    FSM_STATE_LABEL
 protected:
     state() = default;
 public:
+    FSM_STATE_LABEL
     state(const state&) = delete;
     state& operator=(const state&) = default;
     ~state() = default;
     using label_type = std::invoke_result<decltype(&state::label)>::type;
     /**
      * @brief 事件处理
-     * @return label_type 希望变更到的状态的键；若为默认值，则将状态转移任务转交给 @c transit 函数
-     * @throw @c fsm::state_error 状态变更错误
+     * @return label_type 希望变更到的状态的键
+     * @retval state::label() 状态出现错误
+     * @retval label_type() 由 transit 函数负责状态转移任务
      */
     virtual label_type handle(const event&) = 0;
     /**
      * @brief 状态转移
-     * @param _s 当前状态指针
      * @return label_type 希望变更到的状态的键；若为默认值，则重入当前状态
-     * @throw @c fsm::state_error 状态变更错误
+     * @retval state::label() 状态出现错误
+     * @retval label_type() 重入当前状态
      */
-    virtual label_type transit(state* const _s) = 0;
+    virtual label_type transit() = 0;
     /**
      * @brief 状态复制
      * @param _s 被复制的状态对象
@@ -94,7 +95,7 @@ public:
     virtual void entry() {}
     virtual void exit() {}
 private:
-    static bool empty_label(label_type _l) { return _l.empty(); }
+    static bool null_label(label_type _l) { return _l.empty(); }
     template <basic_state _Bs> friend class context;
 };
 
@@ -133,21 +134,21 @@ public:
     /**
      * @brief 事件处理
      * @tparam _Et 派生事件类型
-     * @return false 状态机出错
+     * @return 状态处理结果
+     * @retval true 状态处理正常
+     * @retval false 状态处理出错
      */
     template <typename _Et> requires std::derived_from<_Et, event>
     bool handle(const _Et& _e) {
-        try {
-            state::label_type _ns = _M_state()->handle(_e);
-            if (state::empty_label(_ns)) {
-                _ns = _M_state()->transit(_M_state());
-            }
-            _M_transit(_ns);
-            return true;
+        state::label_type _ns = _M_state()->handle(_e);
+        if (state::null_label(_ns)) {
+            _ns = _M_state()->transit();
         }
-        catch (const fsm::state_error&) {
+        if (state::label() == _ns) {
             return false;
         }
+        _M_transit(_ns);
+        return true;
     }
     /**
      * @brief 状态初始化
@@ -208,7 +209,7 @@ public:
      * @brief 关闭状态机
      */
     void stop() {
-        if (state::empty_label(_state)) return;
+        if (state::null_label(_state)) return;
         _M_state()->exit();
         _state = {};
     }
@@ -238,15 +239,18 @@ private:
     /**
      * @brief 状态切换
      * @param _s 状态键
+     * @details
+     * - param _s
+     *   label_type() 重入当前状态
      */
     void _M_transit(const state::label_type _s) {
-        if (!state::empty_label(_state)) {
-            _M_state()->exit();
-        }
-        if (!state::empty_label(_state) && !state::empty_label(_s)) {
+        if (!state::null_label(_state) && !state::null_label(_s)) {
             _M_state(_s)->assign(*_M_state());
         }
-        if (!state::empty_label(_s)) {
+        if (!state::null_label(_state)) {
+            _M_state()->exit();
+        }
+        if (!state::null_label(_s)) {
             _state = _s;
         }
         _M_state()->entry();

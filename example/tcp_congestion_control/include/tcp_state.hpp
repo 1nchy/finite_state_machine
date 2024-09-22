@@ -14,7 +14,7 @@ struct tcp_congestion_state : public fsm::state {
     virtual label_type handle(const new_ack&) = 0;
     virtual label_type handle(const duplicate_ack&) = 0;
     virtual label_type handle(const timeout&);
-    label_type transit(state* const) override;
+    label_type transit() override;
     void assign(const state&) override;
     void entry() override {}
     void exit() override {}
@@ -39,7 +39,7 @@ struct slow_start : public tcp_congestion_state {
     label_type handle(const fsm::event& _e) override;
     label_type handle(const new_ack& _e) override;
     label_type handle(const duplicate_ack& _e) override;
-    label_type transit(state* const) override;
+    label_type transit() override;
     void entry() override;
     void exit() override;
 };
