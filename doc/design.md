@@ -59,15 +59,17 @@ virtual std::string_view handle(const event&) = 0;
 class state {
     // omitted
 public:
-    virtual std::string_view handle(const event&) = 0;
-    virtual void entry() = 0;
-    virtual void exit() = 0;
+    FSM_STATE_LABEL
+    using label_type = std::invoke_result<decltype(&state::label)>::type;
+    virtual label_type handle(const event&) = 0;
     virtual void assign(const state& _s) {}
+    virtual void entry() {}
+    virtual void exit() {}
 };
 class derived_state : public state {
     derived_state& operator=(const derived_state&);
-    virtual std::string_view handle(const derived_event1&) = 0;
-    virtual std::string_view handle(const derived_event2&) = 0;
+    virtual label_type handle(const derived_event1&) = 0;
+    virtual label_type handle(const derived_event2&) = 0;
     virtual void assign(const state& _s) override { // optional
         this->operator=(std::dynamic_cast<const derived_state&>(_s));
     }
@@ -85,6 +87,21 @@ class state2 : public derived_state {
 
 `assign` 方法用于状态间某些必要数据的赋值，该方法的重写不是必要的。
 
+### Concept 约束
+
+我们分别定义两个 `concept` 用于约束状态类型。
+
+~~~cpp
+template <typename _Bt> concept basic_state = std::derived_from<_Bt, state>;
+template <typename _Bt, typename _St> concept label_state = 
+basic_state<_Bt> && std::derived_from<_St, _Bt> &&
+requires { {_St::label()} -> std::same_as<state::label_type>; };
+~~~
+
+前者 `basic_state` 用于约束基础状态类型，它被要求必须继承自 `state` 基类。
+
+后者 `label_state` 用于约束状态类型，它被要求必须继承自基础状态类型，并且包含用于生成唯一标识的静态成员方法 `label()`。
+
 ## 有限状态机定义
 
 一个容易想到的有限状态机的定义如下：
@@ -98,7 +115,7 @@ public:
     ~context() = default;
     void handle(const event& _e);
 private:
-    std::string_view _state = ""; // 当前状态的键
+    state::label_type _state = {}; // 当前状态的键
 };
 ~~~
 
@@ -119,20 +136,19 @@ private:
 因此，我们更改有限状态机的定义如下；
 
 ~~~cpp
-template <typename _Tp> requires std::is_base_of<state, _Tp>::value class context {
-    typedef context<_Tp> self;
+template <basic_state _Bs> class context {
+    typedef context<_Bs> self;
 public:
     // derived from fsm::state
-    typedef _Tp state_type;
+    typedef _Bs state_type;
     context() = default;
     context(const self&) = delete;
     self& operator=(const self&) = delete;
     ~context() = default;
-    template <typename _Et>
-        requires std::is_base_of<event, _Et>::value
+    template <typename _Et> requires std::derived_from<_Et, event>
         void handle(const _Et&);
 private:
-    std::string_view _state = ""; // 当前状态的键
+    state::label_type _state = {}; // 当前状态的键
 };
 ~~~
 
@@ -154,47 +170,57 @@ private:
 ~~~cpp
 class state {
 public:
-    virtual std::string_view handle(const event&) = 0;
-    virtual std::string_view transit(state* const) const = 0;
+    virtual label_type handle(const event&) = 0;
+    virtual label_type transit() const = 0;
 };
 ~~~
 
-我们这里先讨论一下 `state::handle` 的返回值，包括空字符串和非空字符串。
-非空字符串较易理解，即 `handle` 显式的指定转移状态。
-若返回空字符串，则表示将状态转移交给 `transit` 方法决定。
+我们这里先讨论一下 `state::handle` 的返回值，
+面对不同返回值，我们总共有三种处理方式：直接进行状态转移；将状态转移交给 `transit` 方法决定；报错。
+三种方式对应着 `_St::label()`、空 `label` 和非法 `label`。
 
-其次是 `state::transit` 的返回值，和上面一样，包括空字符串和非空字符串。
-非空字符串是显式指定的转移状态。
-若返回空字符串，则理解为重入当前状态。
+我们把基类标识符作为非法标识符，即 `state::label()`。
 
-对于 `transit` 方法而言，我们需要传入当前状态指针——否则我们在父类的 transit 函数中，无法返回当前状态。
+其次是 `state::transit` 的返回值，和上面一样，我们总共有三种处理方式：直接进行状态转移；重入当前状态；报错。
+三种方式对应着 `_St::label()`、空 `label` 和非法 `label`。
 
-对于错误的输入事件来说，上面两个函数可以用异常处理的方式实现。
+~~对于 `transit` 方法而言，我们需要传入当前状态指针——否则我们在父类的 transit 函数中，无法返回当前状态。~~
+
+在以前的设计中（特指单例模式中），需要 `transit` 返回当前状态指针，才能实现状态的重入，因为空指针被用于做错误处理了。
+
+~~对于错误的输入事件来说，上面两个函数可以用异常处理的方式实现。~~
+
+后来取消单例设计模式时，没有考虑到使用 `state::label()` 作为非法 `label`，而使用了略微影响性能的异常来处理状态错误。随着我对异常机制了解的深入，以及结合实际使用场景，决定不再使用异常来进行错误处理。
+
+> 这里的实际使用场景主要指：
+>
+> 1. 未来可能进行多线程安全化的改造，异常机制在多线程环境中开销较大。
+> 2. 异常率较高，特别是以 有限自动机 形态进行工作时（例如进行按正则规则解析字符串，可能没读几个字符就该结束了，触发状态机报错），这会带来额外的开销。
 
 同时，context 类中也得对事件处理函数的定义与实现做出修改：
 
 ~~~cpp
-template <typename _Tp> template <typename _Et>
-requires std::is_base_of<event, _Et>::value
-auto context<_Tp>::handle(const _Et& _e) -> bool {
-    try {
-        std::string_view _ns = _M_state()->handle(_e);
-        if (_ns.empty()) {
-            _ns = _M_state()->transit(_M_state());
-            // if (_ns.empty()) return true;
+// in context<_Bs>:
+template <typename _Et> requires std::derived_from<_Et, event>
+auto handle(const _Et& _e) -> bool {
+    state::label_type _ns = _M_state()->handle(_e);
+    if (state::null_label(_ns)) {
+        _ns = _M_state()->transit();
+        if (state::null_label(_ns)) { // reentry the current state
+            _ns = _state;
         }
-        _M_transit(_ns);
-        return true;
     }
-    catch (const std::exception&) {
+    if (state::invalid_label(_ns)) {
         return false;
     }
+    _M_transit(_ns);
+    return true;
 }
 ~~~
 
 ## 状态机退出
 
-[前面](#状态的条件转移)提到，当 `state::transit` 函数抛出异常时，表示状态机走到了终点。
+[前面](#状态的条件转移)提到，当 `state::transit` 函数返回非法标识符时，表示状态机走到了终点。
 从实践角度来说，原因可能是：转移到了无出度的（结束或错误）状态、接收了无法处理的事件。
 具体情况依赖于 `state::handle` 及 `state::transit` 函数的实现。
 但无论哪种情况，我们都需要对当前状态进行可收受检测，检测当前状态是否是可接受的结束状态。
@@ -202,20 +228,16 @@ auto context<_Tp>::handle(const _Et& _e) -> bool {
 因此我们给出以下接口：
 
 ~~~cpp
-template <typename _Tp> requires std::is_base_of<state, _Tp>::value class context {
+template <basic_state _Tp> requires std::is_base_of<state, _Tp>::value class context {
 public:
     // derived from fsm::state
     typedef _Tp state_type;
-    template <typename _St>
-        requires std::is_base_of<state_type, _St>::value
-        void accept();
-    template <typename _St>
-        requires std::is_base_of<state_type, _St>::value
-        void reject();
+    template <typename _St> requires label_state<_Bs, _St> void accept();
+    template <typename _St> requires label_state<_Bs, _St> void reject();
     bool acceptable() const;
     const state_type* state() const;
 private:
-    std::unordered_set<std::string_view> _acceptable_states;
+    std::unordered_set<state::label_type> _acceptable_states;
 };
 ~~~
 
