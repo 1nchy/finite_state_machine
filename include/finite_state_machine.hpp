@@ -96,6 +96,7 @@ public:
     virtual void exit() {}
 private:
     static bool null_label(label_type _l) { return _l.empty(); }
+    static bool invalid_label(label_type _l) { return _l == state::label(); }
     template <basic_state _Bs> friend class context;
 };
 
@@ -137,14 +138,18 @@ public:
      * @return 状态处理结果
      * @retval true 状态处理正常
      * @retval false 状态处理出错
+     * @implements state::handle -> state::transit -> context::_M_transit
      */
     template <typename _Et> requires std::derived_from<_Et, event>
     bool handle(const _Et& _e) {
         state::label_type _ns = _M_state()->handle(_e);
         if (state::null_label(_ns)) {
             _ns = _M_state()->transit();
+            if (state::null_label(_ns)) { // reentry the current state
+                _ns = _state;
+            }
         }
-        if (state::label() == _ns) {
+        if (state::invalid_label(_ns)) {
             return false;
         }
         _M_transit(_ns);
@@ -231,28 +236,23 @@ private:
         return (_states.contains(_s) ? _states.at(_s).get() : nullptr);
     }
     const state_type* _M_state() const {
-        return (_states.contains(_state) ? _states.at(_state).get() : nullptr);
+        return _M_state(_state);
     }
     state_type* _M_state() {
-        return (_states.contains(_state) ? _states.at(_state).get() : nullptr);
+        return _M_state(_state);
     }
     /**
      * @brief 状态切换
-     * @param _s 状态键
-     * @details
-     * - param _s
-     *   label_type() 重入当前状态
+     * @param _s 状态键（必须是合法的状态键）
+     * @implements state::assign -> state::exit -> state::entry
      */
     void _M_transit(const state::label_type _s) {
-        if (!state::null_label(_state) && !state::null_label(_s)) {
-            _M_state(_s)->assign(*_M_state());
-        }
+        assert(!state::null_label(_s) && !state::invalid_label(_s));
         if (!state::null_label(_state)) {
+            _M_state(_s)->assign(*_M_state());
             _M_state()->exit();
         }
-        if (!state::null_label(_s)) {
-            _state = _s;
-        }
+        _state = _s;
         _M_state()->entry();
     }
 private:
