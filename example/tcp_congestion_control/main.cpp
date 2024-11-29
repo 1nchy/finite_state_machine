@@ -5,9 +5,7 @@
 
 int main() {
     fsm::context<tcp_congestion_state> _fsm;
-    _fsm.enroll<slow_start>();
-    _fsm.enroll<fast_recovery>();
-    _fsm.enroll<congestion_avoidance>();
+    _fsm.enroll<slow_start, fast_recovery, congestion_avoidance>();
     _fsm.accept<slow_start>();
     _fsm.default_entry<slow_start>();
     _fsm.start();

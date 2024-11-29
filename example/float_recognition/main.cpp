@@ -9,18 +9,9 @@
 int main() {
     fsm::context<float_recognition_state> _fsm;
 
-    _fsm.enroll<AB>();
-    _fsm.enroll<B>();
-    _fsm.enroll<BCFJ>();
-    _fsm.enroll<D>();
-    _fsm.enroll<DEFJ>();
-    _fsm.enroll<GH>();
-    _fsm.enroll<H>();
-    _fsm.enroll<HIJ>();
+    _fsm.enroll<AB, B, BCFJ, D, DEFJ, GH, H, HIJ>();
 
-    _fsm.accept<BCFJ>();
-    _fsm.accept<DEFJ>();
-    _fsm.accept<HIJ>();
+    _fsm.accept<BCFJ, DEFJ, HIJ>();
 
     _fsm.start<AB>();
 

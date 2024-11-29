@@ -126,12 +126,11 @@ public:
 public:
     /**
      * @brief 状态注册
-     * @tparam _St 状态类型
+     * @tparam _Sts 状态类型
      */
-    template <typename _St> requires label_state<_Bs, _St>
-    void enroll() {
-        _states.emplace(_St::label(), std::make_shared<_St>());
-    }
+    template <typename... _Sts> void enroll() {
+        _M_enroll<_Sts...>();
+    };
     /**
      * @brief 事件处理
      * @tparam _Et 派生事件类型
@@ -187,20 +186,18 @@ public:
     }
     /**
      * @brief 可接受的结束状态
-     * @tparam _St 状态类型
+     * @tparam _Sts 状态类型
      */
-    template <typename _St> requires label_state<_Bs, _St>
-    void accept() {
-        this->_acceptable_states.emplace(_St::label());
+    template <typename... _Sts> void accept() {
+        _M_accept<_Sts...>();
     }
     /**
      * @brief 不可接受的结束状态
      * @details 若可接受列表非空，则所有状态均默认为不可接受的结束状态
-     * @tparam _St 状态类型
+     * @tparam _Sts 状态类型
      */
-    template <typename _St> requires label_state<_Bs, _St>
-    void reject() {
-        this->_acceptable_states.erase(_St::label());
+    template <typename... _Sts> void reject() {
+        _M_reject<_Sts...>();
     }
     /**
      * @brief 默认初始状态
@@ -229,6 +226,40 @@ public:
      */
     inline const state_type* state() const { return _M_state(_state); }
 private:
+    /**
+     * @brief 状态注册
+     * @tparam _St 状态类型
+     */
+    template <typename _St, typename... _Sts> requires label_state<_Bs, _St>
+    void _M_enroll() {
+        _states.emplace(_St::label(), std::make_shared<_St>());
+        if constexpr (sizeof...(_Sts) != 0) {
+            _M_enroll<_Sts...>();
+        }
+    }
+    /**
+     * @brief 可接受的结束状态
+     * @tparam _St 状态类型
+     */
+    template <typename _St, typename... _Sts> requires label_state<_Bs, _St>
+    void _M_accept() {
+        this->_acceptable_states.emplace(_St::label());
+        if constexpr (sizeof...(_Sts) != 0) {
+            _M_accept<_Sts...>();
+        }
+    }
+    /**
+     * @brief 不可接受的结束状态
+     * @details 若可接受列表非空，则所有状态均默认为不可接受的结束状态
+     * @tparam _St 状态类型
+     */
+    template <typename _St, typename... _Sts> requires label_state<_Bs, _St>
+    void _M_reject() {
+        this->_acceptable_states.erase(_St::label());
+        if constexpr (sizeof...(_Sts) != 0) {
+            _M_reject<_Sts...>();
+        }
+    }
     const state_type* _M_state(state::label_type _s) const {
         return (_states.contains(_s) ? _states.at(_s).get() : nullptr);
     }
