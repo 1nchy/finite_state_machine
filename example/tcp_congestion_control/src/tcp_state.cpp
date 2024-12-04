@@ -1,5 +1,8 @@
 #include "tcp_state.hpp"
 
+tcp_congestion_state::tcp_congestion_state() {
+    tcp_congestion_state::reset();
+}
 auto tcp_congestion_state::operator=(const tcp_congestion_state& _s)
 -> tcp_congestion_state& {
     if (&_s == this) return *this;
@@ -28,6 +31,11 @@ auto tcp_congestion_state::transit() -> label_type {
 }
 auto tcp_congestion_state::assign(const state& _s) -> void {
     this->operator=(dynamic_cast<const tcp_congestion_state&>(_s));
+}
+auto tcp_congestion_state::reset() -> void {
+    _dup_ack_count = 0;
+    _cwnd = _MSS;
+    _ssthresh = 64 * 1024;
 }
 
 

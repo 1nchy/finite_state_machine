@@ -6,7 +6,8 @@
 
 struct float_recognition_state : public fsm::state {
     using state = fsm::state;
-    float_recognition_state& operator=(const float_recognition_state&);
+    float_recognition_state();
+    float_recognition_state& operator=(const float_recognition_state&) = default;
     virtual label_type handle(const fsm::event&) override;
     virtual label_type handle(const digit&);
     virtual label_type handle(const dot&);
@@ -14,6 +15,7 @@ struct float_recognition_state : public fsm::state {
     virtual label_type handle(const sign&);
     label_type transit() override;
     void assign(const state&) override;
+    void reset() override;
     void entry() override {}
     void exit() override {}
     size_t length() const { return _length; }

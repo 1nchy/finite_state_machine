@@ -92,6 +92,7 @@ public:
      * @details 子类中实现时，应该使用 dynamic_cast 将参数转换为子类对象，再进行赋值操作
      */
     virtual void assign(const state& _s) {}
+    virtual void reset() {}
     virtual void entry() {}
     virtual void exit() {}
 private:
@@ -214,6 +215,7 @@ public:
         if (state::null_label(_state)) return;
         _M_state()->exit();
         _state = {};
+        _M_reset();
     }
     /**
      * @brief 当前状态是否可接受
@@ -271,6 +273,14 @@ private:
     }
     state_type* _M_state() {
         return _M_state(_state);
+    }
+    /**
+     * @brief reset state inner data
+     */
+    void _M_reset() {
+        for (auto& [_l, _s] : _states) {
+            _s->reset();
+        }
     }
     /**
      * @brief 状态切换

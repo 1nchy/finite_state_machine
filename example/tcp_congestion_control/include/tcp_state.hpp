@@ -9,6 +9,7 @@
 
 struct tcp_congestion_state : public fsm::state {
     using state = fsm::state;
+    tcp_congestion_state();
     tcp_congestion_state& operator=(const tcp_congestion_state&);
     virtual label_type handle(const fsm::event&) override = 0;
     virtual label_type handle(const new_ack&) = 0;
@@ -16,6 +17,7 @@ struct tcp_congestion_state : public fsm::state {
     virtual label_type handle(const timeout&);
     label_type transit() override;
     void assign(const state&) override;
+    void reset() override;
     void entry() override {}
     void exit() override {}
     const size_t _MSS = 1460;

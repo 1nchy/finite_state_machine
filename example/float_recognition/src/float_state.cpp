@@ -1,12 +1,8 @@
 #include "float_state.hpp"
 
-auto float_recognition_state::operator=(const float_recognition_state& _s)
--> float_recognition_state& {
-    if (&_s == this) return *this;
-    _length = _s._length;
-    return *this;
+float_recognition_state::float_recognition_state() {
+    float_recognition_state::reset();
 }
-
 auto float_recognition_state::handle(const fsm::event& _e) -> label_type {
     _end_of_float = true;
     return {};
@@ -29,6 +25,9 @@ auto float_recognition_state::transit() -> label_type {
 }
 auto float_recognition_state::assign(const state& _s) -> void {
     this->operator=(dynamic_cast<const float_recognition_state&>(_s));
+}
+auto float_recognition_state::reset() -> void {
+    _length = 0; _end_of_float = false;
 }
 
 auto AB::handle(const digit& _e) -> label_type {
