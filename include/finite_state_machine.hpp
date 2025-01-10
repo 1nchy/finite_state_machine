@@ -303,6 +303,175 @@ private:
     std::unordered_map<state::label_type, std::shared_ptr<state_type>> _states;
 };
 
+namespace character {
+
+struct alpha : public fsm::event { // a-zA-Z
+    alpha(char _c) : _val(_c) {
+        if (!isalpha(_c)) throw std::out_of_range("alpha for a-zA-Z");
+    }
+    char value() const { return _val; }
+private:
+    const char _val;
+};
+struct digit : public fsm::event { // 0-9
+    digit(char _c) : _val(_c) {
+        if (!isdigit(_c)) throw std::out_of_range("digit for 0-9");
+    }
+    char value() const { return _val; }
+private:
+    const char _val;
+};
+// struct alnum : public fsm::event { // a-zA-Z0-9
+//     alnum(char _c) : _val(_c) {
+//         if (!isalnum(_c)) throw std::out_of_range("alnum for a-zA-Z0-9");
+//     }
+//     char value() const { return _val; }
+// private:
+//     const char _val;
+// };
+
+struct plus : public fsm::event { // +
+    inline constexpr char value() const { return '+'; }
+};
+struct minus : public fsm::event { // -
+    inline constexpr char value() const { return '-'; }
+};
+struct asterisk : public fsm::event { // *
+    inline constexpr char value() const { return '*'; }
+};
+struct slash : public fsm::event { // /
+    inline constexpr char value() const { return '/'; }
+};
+struct assignment : public fsm::event { // =
+    inline constexpr char value() const { return '='; }
+};
+struct dot : public fsm::event { // .
+    inline constexpr char value() const { return '.'; }
+};
+struct comma : public fsm::event { // ,
+    inline constexpr char value() const { return ','; }
+};
+struct vertical : public fsm::event { // |
+    inline constexpr char value() const { return '|'; }
+};
+struct underline : public fsm::event { // _
+    inline constexpr char value() const { return '_'; }
+};
+
+struct left_angle : public fsm::event { // <
+    inline constexpr char value() const { return '<'; }
+};
+struct right_angle : public fsm::event { // >
+    inline constexpr char value() const { return '>'; }
+};
+struct left_parentheses : public fsm::event { // (
+    inline constexpr char value() const { return '('; }
+};
+struct right_parentheses : public fsm::event { // )
+    inline constexpr char value() const { return ')'; }
+};
+struct left_square : public fsm::event { // [
+    inline constexpr char value() const { return '['; }
+};
+struct right_square : public fsm::event { // ]
+    inline constexpr char value() const { return ']'; }
+};
+struct left_curly : public fsm::event { // {
+    inline constexpr char value() const { return '{'; }
+};
+struct right_curly : public fsm::event { // }
+    inline constexpr char value() const { return '}'; }
+};
+
+struct single_quote : public fsm::event { // '
+    inline constexpr char value() const { return '\''; }
+};
+struct double_quote : public fsm::event { // "
+    inline constexpr char value() const { return '\"'; }
+};
+struct back_quote : public fsm::event { // `
+    inline constexpr char value() const { return '`'; }
+};
+struct tilde : public fsm::event { // ~
+    inline constexpr char value() const { return '~'; }
+};
+struct backslash : public fsm::event { // 
+    inline constexpr char value() const { return '\\'; }
+};
+struct question : public fsm::event { // ?
+    inline constexpr char value() const { return '?'; }
+};
+struct colon : public fsm::event { // :
+    inline constexpr char value() const { return ':'; }
+};
+struct semicolon : public fsm::event { // ;
+    inline constexpr char value() const { return ';'; }
+};
+
+struct exclamation : public fsm::event { // !
+    inline constexpr char value() const { return '!'; }
+};
+struct at : public fsm::event { // @
+    inline constexpr char value() const { return '@'; }
+};
+struct hashtag : public fsm::event { // #
+    inline constexpr char value() const { return '#'; }
+};
+struct dollar : public fsm::event { // $
+    inline constexpr char value() const { return '$'; }
+};
+struct percent : public fsm::event { // %
+    inline constexpr char value() const { return '%'; }
+};
+struct caret : public fsm::event { // ^
+    inline constexpr char value() const { return '^'; }
+};
+struct ampersand : public fsm::event { // &
+    inline constexpr char value() const { return '&'; }
+};
+
+template <typename _Tp> auto handle(fsm::context<_Tp>& _f, char _c) {
+    if (isdigit(_c)) { return _f.handle(digit(_c)); }
+    else if (isalpha(_c)) { return _f.handle(alpha(_c)); }
+    switch (_c) {
+    case '+' : return _f.handle(plus());
+    case '-' : return _f.handle(minus());
+    case '*' : return _f.handle(asterisk());
+    case '/' : return _f.handle(slash());
+    case '=' : return _f.handle(assignment());
+    case '.' : return _f.handle(dot());
+    case ',' : return _f.handle(comma());
+    case '|' : return _f.handle(vertical());
+    case '_' : return _f.handle(underline());
+    case '<' : return _f.handle(left_angle());
+    case '>' : return _f.handle(right_angle());
+    case '(' : return _f.handle(left_parentheses());
+    case ')' : return _f.handle(right_parentheses());
+    case '[' : return _f.handle(left_square());
+    case ']' : return _f.handle(right_square());
+    case '{' : return _f.handle(left_curly());
+    case '}' : return _f.handle(right_curly());
+    case '\'' : return _f.handle(single_quote());
+    case '\"' : return _f.handle(double_quote());
+    case '`' : return _f.handle(back_quote());
+    case '~' : return _f.handle(tilde());
+    case '\\' : return _f.handle(backslash());
+    case '?' : return _f.handle(question());
+    case ':' : return _f.handle(colon());
+    case ';' : return _f.handle(semicolon());
+    case '!' : return _f.handle(exclamation());
+    case '@' : return _f.handle(at());
+    case '#' : return _f.handle(hashtag());
+    case '$' : return _f.handle(dollar());
+    case '%' : return _f.handle(percent());
+    case '^' : return _f.handle(caret());
+    case '&' : return _f.handle(ampersand());
+    }
+    return _f.handle(event());
+}
+
+};
+
 };
 
 #endif // _ICY_FINITE_STATE_MACHINE_HPP_
