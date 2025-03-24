@@ -1,6 +1,5 @@
 #include "finite_state_machine.hpp"
 
-#include "float_event.hpp"
 #include "float_state.hpp"
 
 #include <string>
@@ -17,23 +16,7 @@ int main() {
 
     const std::string _s = "-0.114e5.14\n"; // 务必在字符串末尾加上一个字符集以外的字符，以便让自动机在循环内终止
     for (const auto& _c : _s) {
-        bool _result;
-        if (isdigit(_c)) {
-            _result = _fsm.handle(digit());
-        }
-        else if (isalpha(_c)) {
-            _result = _fsm.handle(alpha(_c));
-        }
-        else if (_c == '.') {
-            _result = _fsm.handle(dot());
-        }
-        else if (_c == '+' || _c == '-') {
-            _result = _fsm.handle(sign());
-        }
-        else {
-            _result = _fsm.handle(fsm::event());
-        }
-
+        bool _result = fsm::character::handle(_fsm, _c);
         if (!_result) {
             size_t _len = _fsm.state()->length();
             if (_fsm.acceptable()) {

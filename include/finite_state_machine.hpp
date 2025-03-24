@@ -305,169 +305,199 @@ private:
 
 namespace character {
 
-struct alpha : public fsm::event { // a-zA-Z
-    alpha(char _c) : _val(_c) {
-        if (!isalpha(_c)) throw std::out_of_range("alpha for a-zA-Z");
-    }
-    char value() const { return _val; }
+struct ascii_code : public fsm::event {
+    constexpr ascii_code(char _c): _val(_c) {}
+    inline constexpr char value() const { return _val; }
 private:
     const char _val;
 };
-struct digit : public fsm::event { // 0-9
-    digit(char _c) : _val(_c) {
-        if (!isdigit(_c)) throw std::out_of_range("digit for 0-9");
+struct printable_code : public ascii_code {
+    printable_code(char _c) : ascii_code(_c) {
+        if (!isprint(_c)) throw std::out_of_range("not printable code");
     }
-    char value() const { return _val; }
-private:
-    const char _val;
 };
-// struct alnum : public fsm::event { // a-zA-Z0-9
-//     alnum(char _c) : _val(_c) {
-//         if (!isalnum(_c)) throw std::out_of_range("alnum for a-zA-Z0-9");
-//     }
-//     char value() const { return _val; }
-// private:
-//     const char _val;
-// };
-
-struct plus : public fsm::event { // +
-    inline constexpr char value() const { return '+'; }
+struct control_code : public ascii_code {
+    control_code(char _c) : ascii_code(_c) {
+        if (isprint(_c)) throw std::out_of_range("not control code");
+    }
 };
-struct minus : public fsm::event { // -
-    inline constexpr char value() const { return '-'; }
+struct alnum : public printable_code { // a-zA-Z0-9
+    alnum(char _c) : printable_code(_c) {
+        if (!isalnum(_c)) throw std::out_of_range("not in [a-zA-Z0-9]");
+    }
 };
-struct asterisk : public fsm::event { // *
-    inline constexpr char value() const { return '*'; }
+struct alpha : public alnum { // a-zA-Z
+    alpha(char _c) : alnum(_c) {
+        if (!isalpha(_c)) throw std::out_of_range("not in [a-zA-Z]");
+    }
 };
-struct slash : public fsm::event { // /
-    inline constexpr char value() const { return '/'; }
+struct lower_case : public alpha { // a-z
+    lower_case(char _c) : alpha(_c) {
+        if (!islower(_c)) throw std::out_of_range("not in [a-z]");
+    }
 };
-struct assignment : public fsm::event { // =
-    inline constexpr char value() const { return '='; }
+struct upper_case : public alpha { // A-Z
+    upper_case(char _c) : alpha(_c) {
+        if (!isupper(_c)) throw std::out_of_range("not in [A-Z]");
+    }
 };
-struct dot : public fsm::event { // .
-    inline constexpr char value() const { return '.'; }
-};
-struct comma : public fsm::event { // ,
-    inline constexpr char value() const { return ','; }
-};
-struct vertical : public fsm::event { // |
-    inline constexpr char value() const { return '|'; }
-};
-struct underline : public fsm::event { // _
-    inline constexpr char value() const { return '_'; }
+struct digit : public alnum { // 0-9
+    digit(char _c) : alnum(_c) {
+        if (!isdigit(_c)) throw std::out_of_range("not in [0-9]");
+    }
 };
 
-struct left_angle : public fsm::event { // <
-    inline constexpr char value() const { return '<'; }
+struct plus : public printable_code { // +
+    plus() : printable_code('+') {}
 };
-struct right_angle : public fsm::event { // >
-    inline constexpr char value() const { return '>'; }
+struct minus : public printable_code { // -
+    minus() : printable_code('-') {}
 };
-struct left_parentheses : public fsm::event { // (
-    inline constexpr char value() const { return '('; }
+struct asterisk : public printable_code { // *
+    asterisk() : printable_code('*') {}
 };
-struct right_parentheses : public fsm::event { // )
-    inline constexpr char value() const { return ')'; }
+struct slash : public printable_code { // /
+    slash() : printable_code('/') {}
 };
-struct left_square : public fsm::event { // [
-    inline constexpr char value() const { return '['; }
+struct assignment : public printable_code { // =
+    assignment() : printable_code('=') {}
 };
-struct right_square : public fsm::event { // ]
-    inline constexpr char value() const { return ']'; }
+struct dot : public printable_code { // .
+    dot() : printable_code('.') {}
 };
-struct left_curly : public fsm::event { // {
-    inline constexpr char value() const { return '{'; }
+struct comma : public printable_code { // ,
+    comma() : printable_code(',') {}
 };
-struct right_curly : public fsm::event { // }
-    inline constexpr char value() const { return '}'; }
+struct vertical : public printable_code { // |
+    vertical() : printable_code('|') {}
 };
-
-struct single_quote : public fsm::event { // '
-    inline constexpr char value() const { return '\''; }
-};
-struct double_quote : public fsm::event { // "
-    inline constexpr char value() const { return '\"'; }
-};
-struct back_quote : public fsm::event { // `
-    inline constexpr char value() const { return '`'; }
-};
-struct tilde : public fsm::event { // ~
-    inline constexpr char value() const { return '~'; }
-};
-struct backslash : public fsm::event { // 
-    inline constexpr char value() const { return '\\'; }
-};
-struct question : public fsm::event { // ?
-    inline constexpr char value() const { return '?'; }
-};
-struct colon : public fsm::event { // :
-    inline constexpr char value() const { return ':'; }
-};
-struct semicolon : public fsm::event { // ;
-    inline constexpr char value() const { return ';'; }
+struct underline : public printable_code { // _
+    underline() : printable_code('_') {}
 };
 
-struct exclamation : public fsm::event { // !
-    inline constexpr char value() const { return '!'; }
+struct left_angle : public printable_code { // <
+    left_angle() : printable_code('<') {}
 };
-struct at : public fsm::event { // @
-    inline constexpr char value() const { return '@'; }
+struct right_angle : public printable_code { // >
+    right_angle() : printable_code('>') {}
 };
-struct hashtag : public fsm::event { // #
-    inline constexpr char value() const { return '#'; }
+struct left_parentheses : public printable_code { // (
+    left_parentheses() : printable_code('(') {}
 };
-struct dollar : public fsm::event { // $
-    inline constexpr char value() const { return '$'; }
+struct right_parentheses : public printable_code { // )
+    right_parentheses() : printable_code(')') {}
 };
-struct percent : public fsm::event { // %
-    inline constexpr char value() const { return '%'; }
+struct left_square : public printable_code { // [
+    left_square() : printable_code('[') {}
 };
-struct caret : public fsm::event { // ^
-    inline constexpr char value() const { return '^'; }
+struct right_square : public printable_code { // ]
+    right_square() : printable_code(']') {}
 };
-struct ampersand : public fsm::event { // &
-    inline constexpr char value() const { return '&'; }
+struct left_curly : public printable_code { // {
+    left_curly() : printable_code('{') {}
+};
+struct right_curly : public printable_code { // }
+    right_curly() : printable_code('}') {}
+};
+
+struct single_quote : public printable_code { // '
+    single_quote() : printable_code('\'') {}
+};
+struct double_quote : public printable_code { // "
+    double_quote() : printable_code('\"') {}
+};
+struct back_quote : public printable_code { // `
+    back_quote() : printable_code('`') {}
+};
+struct tilde : public printable_code { // ~
+    tilde() : printable_code('~') {}
+};
+struct backslash : public printable_code { // 
+    backslash() : printable_code('\\') {}
+};
+struct question : public printable_code { // ?
+    question() : printable_code('?') {}
+};
+struct colon : public printable_code { // :
+    colon() : printable_code(':') {}
+};
+struct semicolon : public printable_code { // ;
+    semicolon() : printable_code(';') {}
+};
+
+struct exclamation : public printable_code { // !
+    exclamation() : printable_code('!') {}
+};
+struct at : public printable_code { // @
+    at() : printable_code('@') {}
+};
+struct hashtag : public printable_code { // #
+    hashtag() : printable_code('#') {}
+};
+struct dollar : public printable_code { // $
+    dollar() : printable_code('$') {}
+};
+struct percent : public printable_code { // %
+    percent() : printable_code('%') {}
+};
+struct caret : public printable_code { // ^
+    caret() : printable_code('^') {}
+};
+struct ampersand : public printable_code { // &
+    ampersand() : printable_code('&') {}
 };
 
 template <typename _Tp> auto handle(fsm::context<_Tp>& _f, char _c) {
-    if (isdigit(_c)) { return _f.handle(digit(_c)); }
-    else if (isalpha(_c)) { return _f.handle(alpha(_c)); }
-    switch (_c) {
-    case '+' : return _f.handle(plus());
-    case '-' : return _f.handle(minus());
-    case '*' : return _f.handle(asterisk());
-    case '/' : return _f.handle(slash());
-    case '=' : return _f.handle(assignment());
-    case '.' : return _f.handle(dot());
-    case ',' : return _f.handle(comma());
-    case '|' : return _f.handle(vertical());
-    case '_' : return _f.handle(underline());
-    case '<' : return _f.handle(left_angle());
-    case '>' : return _f.handle(right_angle());
-    case '(' : return _f.handle(left_parentheses());
-    case ')' : return _f.handle(right_parentheses());
-    case '[' : return _f.handle(left_square());
-    case ']' : return _f.handle(right_square());
-    case '{' : return _f.handle(left_curly());
-    case '}' : return _f.handle(right_curly());
-    case '\'' : return _f.handle(single_quote());
-    case '\"' : return _f.handle(double_quote());
-    case '`' : return _f.handle(back_quote());
-    case '~' : return _f.handle(tilde());
-    case '\\' : return _f.handle(backslash());
-    case '?' : return _f.handle(question());
-    case ':' : return _f.handle(colon());
-    case ';' : return _f.handle(semicolon());
-    case '!' : return _f.handle(exclamation());
-    case '@' : return _f.handle(at());
-    case '#' : return _f.handle(hashtag());
-    case '$' : return _f.handle(dollar());
-    case '%' : return _f.handle(percent());
-    case '^' : return _f.handle(caret());
-    case '&' : return _f.handle(ampersand());
+    if (isprint(_c)) { // printable code
+        if (isdigit(_c)) {
+            return _f.handle(digit(_c));
+        }
+        if (islower(_c)) {
+            return _f.handle(lower_case(_c));
+        }
+        if (isupper(_c)) {
+            return _f.handle(upper_case(_c));
+        }
+        switch (_c) {
+            case '+' : return _f.handle(plus());
+            case '-' : return _f.handle(minus());
+            case '*' : return _f.handle(asterisk());
+            case '/' : return _f.handle(slash());
+            case '=' : return _f.handle(assignment());
+            case '.' : return _f.handle(dot());
+            case ',' : return _f.handle(comma());
+            case '|' : return _f.handle(vertical());
+            case '_' : return _f.handle(underline());
+            case '<' : return _f.handle(left_angle());
+            case '>' : return _f.handle(right_angle());
+            case '(' : return _f.handle(left_parentheses());
+            case ')' : return _f.handle(right_parentheses());
+            case '[' : return _f.handle(left_square());
+            case ']' : return _f.handle(right_square());
+            case '{' : return _f.handle(left_curly());
+            case '}' : return _f.handle(right_curly());
+            case '\'' : return _f.handle(single_quote());
+            case '\"' : return _f.handle(double_quote());
+            case '`' : return _f.handle(back_quote());
+            case '~' : return _f.handle(tilde());
+            case '\\' : return _f.handle(backslash());
+            case '?' : return _f.handle(question());
+            case ':' : return _f.handle(colon());
+            case ';' : return _f.handle(semicolon());
+            case '!' : return _f.handle(exclamation());
+            case '@' : return _f.handle(at());
+            case '#' : return _f.handle(hashtag());
+            case '$' : return _f.handle(dollar());
+            case '%' : return _f.handle(percent());
+            case '^' : return _f.handle(caret());
+            case '&' : return _f.handle(ampersand());
+        }
+        return _f.handle(printable_code(_c));
     }
-    return _f.handle(event());
+    else { // control code
+        return _f.handle(control_code(_c));
+    }
+    return _f.handle(ascii_code(_c));
 }
 
 };
