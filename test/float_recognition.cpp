@@ -7,16 +7,19 @@ auto float_recognition_state::handle(const fsm::event& _e) -> label_type {
     _end_of_float = true;
     return {};
 }
-auto float_recognition_state::handle(const digit& _e) -> label_type {
+auto float_recognition_state::handle(const fsm::character::digit& _e) -> label_type {
     return handle(fsm::event(_e));
 }
-auto float_recognition_state::handle(const dot& _e) -> label_type {
+auto float_recognition_state::handle(const fsm::character::dot& _e) -> label_type {
     return handle(fsm::event(_e));
 }
-auto float_recognition_state::handle(const alpha& _e) -> label_type {
+auto float_recognition_state::handle(const fsm::character::alpha& _e) -> label_type {
     return handle(fsm::event(_e));
 }
-auto float_recognition_state::handle(const sign& _e) -> label_type {
+auto float_recognition_state::handle(const fsm::character::plus& _e) -> label_type {
+    return handle(fsm::event(_e));
+}
+auto float_recognition_state::handle(const fsm::character::minus& _e) -> label_type {
     return handle(fsm::event(_e));
 }
 auto float_recognition_state::transit() -> label_type {
@@ -31,63 +34,71 @@ auto float_recognition_state::reset() -> void {
     _end_of_float = false;
 }
 
-auto AB::handle(const digit& _e) -> label_type {
+auto AB::handle(const fsm::character::digit& _e) -> label_type {
     ++_length;
     return BCFJ::label();
 }
-auto AB::handle(const sign& _e) -> label_type {
+auto AB::handle(const fsm::character::plus& _e) -> label_type {
     ++_length;
     return B::label();
 }
-auto B::handle(const digit& _e) -> label_type {
+auto AB::handle(const fsm::character::minus& _e) -> label_type {
+    ++_length;
+    return B::label();
+}
+auto B::handle(const fsm::character::digit& _e) -> label_type {
     ++_length;
     return BCFJ::label();
 }
-auto BCFJ::handle(const digit& _e) -> label_type {
+auto BCFJ::handle(const fsm::character::digit& _e) -> label_type {
     ++_length;
     return BCFJ::label();
 }
-auto BCFJ::handle(const dot& _e) -> label_type {
+auto BCFJ::handle(const fsm::character::dot& _e) -> label_type {
     ++_length;
     return D::label();
 }
-auto BCFJ::handle(const alpha& _e) -> label_type {
-    if (_e._c != 'e') {
+auto BCFJ::handle(const fsm::character::alpha& _e) -> label_type {
+    if (_e.value() != 'e') {
         _end_of_float = true;
         return state::label();
     }
     ++_length;
     return GH::label();
 }
-auto D::handle(const digit& _e) -> label_type {
+auto D::handle(const fsm::character::digit& _e) -> label_type {
     ++_length;
     return DEFJ::label();
 }
-auto DEFJ::handle(const digit& _e) -> label_type {
+auto DEFJ::handle(const fsm::character::digit& _e) -> label_type {
     ++_length;
     return DEFJ::label();
 }
-auto DEFJ::handle(const alpha& _e) -> label_type {
-    if (_e._c != 'e') {
+auto DEFJ::handle(const fsm::character::alpha& _e) -> label_type {
+    if (_e.value() != 'e') {
         _end_of_float = true;
         return state::label();
     }
     ++_length;
     return GH::label();
 }
-auto GH::handle(const digit& _e) -> label_type {
+auto GH::handle(const fsm::character::digit& _e) -> label_type {
     ++_length;
     return HIJ::label();
 }
-auto GH::handle(const sign& _e) -> label_type {
+auto GH::handle(const fsm::character::plus& _e) -> label_type {
     ++_length;
     return H::label();
 }
-auto H::handle(const digit& _e) -> label_type {
+auto GH::handle(const fsm::character::minus& _e) -> label_type {
+    ++_length;
+    return H::label();
+}
+auto H::handle(const fsm::character::digit& _e) -> label_type {
     ++_length;
     return HIJ::label();
 }
-auto HIJ::handle(const digit& _e) -> label_type {
+auto HIJ::handle(const fsm::character::digit& _e) -> label_type {
     ++_length;
     return HIJ::label();
 }
@@ -103,22 +114,7 @@ int main() {
     auto parse_float = [&](const std::string& _s, const std::string& _expect) -> bool {
         _fsm.restart();
         for (const auto& _c : _s) {
-            bool _result;
-            if (isdigit(_c)) {
-                _result = _fsm.handle(digit());
-            }
-            else if (isalpha(_c)) {
-                _result = _fsm.handle(alpha(_c));
-            }
-            else if (_c == '.') {
-                _result = _fsm.handle(dot());
-            }
-            else if (_c == '+' || _c == '-') {
-                _result = _fsm.handle(sign());
-            }
-            else {
-                _result = _fsm.handle(fsm::event());
-            }
+            bool _result = fsm::character::handle(_fsm, _c);
             if (!_result) {
                 size_t _len = _fsm.state()->length();
                 if (_fsm.acceptable()) {
