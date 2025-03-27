@@ -7,6 +7,8 @@
 #include "finite_state_machine.hpp"
 #include "tcp_event.hpp"
 
+using namespace icy;
+
 struct tcp_congestion_state : public fsm::state {
     using state = fsm::state;
     tcp_congestion_state();

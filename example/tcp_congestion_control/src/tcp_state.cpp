@@ -1,5 +1,7 @@
 #include "tcp_state.hpp"
 
+using namespace icy;
+
 tcp_congestion_state::tcp_congestion_state() {
     tcp_congestion_state::reset();
 }

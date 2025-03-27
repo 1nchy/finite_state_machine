@@ -5,6 +5,8 @@
 #include <string>
 #include <cstring>
 
+using namespace icy;
+
 int main() {
     fsm::context<float_recognition_state> _fsm;
 

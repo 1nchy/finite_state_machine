@@ -15,6 +15,8 @@
 
 #include <source_location>
 
+namespace icy {
+
 namespace fsm {
 
 struct event;
@@ -500,8 +502,10 @@ template <typename _Tp> auto handle(fsm::context<_Tp>& _f, char _c) {
     return _f.handle(ascii_code(_c));
 }
 
-};
+}
 
-};
+}
+
+}
 
 #endif // _ICY_FINITE_STATE_MACHINE_HPP_

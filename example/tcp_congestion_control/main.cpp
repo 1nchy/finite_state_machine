@@ -3,6 +3,8 @@
 #include "tcp_event.hpp"
 #include "tcp_state.hpp"
 
+using namespace icy;
+
 int main() {
     fsm::context<tcp_congestion_state> _fsm;
     _fsm.enroll<slow_start, fast_recovery, congestion_avoidance>();

@@ -1,5 +1,7 @@
 #include "float_recognition.hpp"
 
+using namespace icy;
+
 float_recognition_state::float_recognition_state() {
     float_recognition_state::reset();
 }
